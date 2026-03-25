@@ -29,6 +29,11 @@ import AdminForums from "./pages/admin/Forums";
 import Statistics from "./pages/admin/Statistics";
 
 import NotFound from "./pages/NotFound";
+import CreateClub from "./pages/admin/Create_club";
+import ClubDetails from "./pages/admin/ClubDetails";
+import Settings from "./components/Settings";
+import Profile from "./components/Profile";
+import Notifications from "./components/Notifications";
 
 export const router = createBrowserRouter([
   {
@@ -40,6 +45,26 @@ export const router = createBrowserRouter([
       { path: "signup", Component: Signup },
       { path: "pending", Component: PendingApproval },
       
+      // routes.tsx
+// Ajouter les routes avec paramètres d'ID
+
+
+// Dans routes.tsx
+{ path: "admin/profile/:id", Component: Profile },
+{ path: "staff/profile/:id", Component: Profile },
+{ path: "member/profile/:id", Component: Profile },
+// routes.tsx
+{ path: "admin/notifications/:id", Component: Notifications },
+{ path: "staff/notifications/:id", Component: Notifications },
+{ path: "member/notifications/:id", Component: Notifications },
+
+// Ajouter dans les routes appropriées selon le rôle
+// Pour admin:
+{ path: "admin/notifications", Component: Notifications },
+// Pour staff:
+{ path: "staff/notifications", Component: Notifications },
+// Pour member:
+{ path: "member/notifications", Component: Notifications },
       // Member routes
       { path: "member/dashboard", Component: MemberDashboard },
       { path: "member/events", Component: MemberEvents },
@@ -57,6 +82,8 @@ export const router = createBrowserRouter([
       // Admin routes
       { path: "admin/dashboard", Component: AdminDashboard },
       { path: "admin/clubs", Component: ClubsManagement },
+      { path: "admin/clubs/create", Component: CreateClub },
+      { path: "admin/clubs/:id", Component: ClubDetails }, // New route for club details
       { path: "admin/members", Component: AdminMemberManagement },
       { path: "admin/events", Component: AdminEventRequests },
       { path: "admin/communication", Component: AdminCommunication },

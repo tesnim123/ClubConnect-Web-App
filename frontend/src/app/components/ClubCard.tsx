@@ -1,8 +1,10 @@
+// components/ClubCard.tsx (updated)
 import { Club } from "../data/mockData";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Users } from "lucide-react";
+import { useNavigate } from "react-router";
 
 interface ClubCardProps {
   club: Club;
@@ -10,8 +12,25 @@ interface ClubCardProps {
 }
 
 export function ClubCard({ club, onJoin }: ClubCardProps) {
+  const navigate = useNavigate();
+
+  const handleCardClick = () => {
+    // Navigate to club details page
+    navigate(`/admin/clubs/${club.id}`);
+  };
+
+  const handleJoinClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent the card click from triggering
+    if (onJoin) {
+      onJoin();
+    }
+  };
+
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+    <Card 
+      className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+      onClick={handleCardClick}
+    >
       <div className="relative h-32">
         <img
           src={club.coverPhoto}
@@ -45,7 +64,7 @@ export function ClubCard({ club, onJoin }: ClubCardProps) {
 
         {onJoin && (
           <Button
-            onClick={onJoin}
+            onClick={handleJoinClick}
             className="w-full bg-[#0EA8A8] hover:bg-[#0c8e8e]"
           >
             Rejoindre

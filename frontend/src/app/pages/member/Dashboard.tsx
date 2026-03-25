@@ -10,16 +10,31 @@ import { Link } from "react-router";
 export default function MemberDashboard() {
   const upcomingEvents = events.filter(e => e.clubId === currentUser.clubId).slice(0, 3);
   const interClubEvents = events.filter(e => e.type === 'inter-club').slice(0, 2);
+  const memberData = {
+    id: "member_1",
+    fullName: `${currentUser.firstName} ${currentUser.lastName}`,
+    role: "member",
+    roleLabel: "Membre",
+    avatar: currentUser.avatar
+  };
 
   return (
     <div className="flex h-screen">
       <Sidebar role="member" />
       
       <div className="flex-1 flex flex-col overflow-hidden">
-        <TopNav
-          userName={`${currentUser.firstName} ${currentUser.lastName}`}
-          userAvatar={currentUser.avatar}
+        <TopNav 
+          userId={memberData.id}
+          userName={currentUser.firstName}
+          userAvatar={memberData.avatar}
+          userRole={memberData.roleLabel}
+          userRoleType="member"
           notificationCount={3}
+          onLogout={() => {
+            // Logique de déconnexion
+            localStorage.removeItem('token');
+            window.location.href = "/login";
+          }}
         />
 
         <main className="flex-1 overflow-y-auto bg-[#F7F8FC] p-6">

@@ -1,5 +1,6 @@
+// components/Sidebar.tsx
 import { Link } from "react-router";
-import { Home, Calendar, MessageSquare, Users, Settings, BarChart3, Building2 } from "lucide-react";
+import { Home, Calendar, MessageSquare, Users, Settings, BarChart3, Building2, MessagesSquare } from "lucide-react";
 import { cn } from "../components/ui/utils";
 
 interface SidebarProps {
@@ -29,6 +30,7 @@ export function Sidebar({ role, collapsed = false }: SidebarProps) {
     { to: "/admin/clubs", icon: Building2, label: "Clubs" },
     { to: "/admin/events", icon: Calendar, label: "Événements" },
     { to: "/admin/members", icon: Users, label: "Membres" },
+    { to: "/admin/forums", icon: MessagesSquare, label: "Forums" }, // Nouveau lien pour les forums
     { to: "/admin/statistics", icon: BarChart3, label: "Statistiques" },
     { to: "/admin/communication", icon: MessageSquare, label: "Communication" },
   ];
@@ -63,10 +65,15 @@ export function Sidebar({ role, collapsed = false }: SidebarProps) {
             <Link
               key={link.to}
               to={link.to}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2D3E5F] transition-colors"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2D3E5F] transition-colors group"
             >
               <Icon className="w-5 h-5 flex-shrink-0" />
               {!collapsed && <span>{link.label}</span>}
+              {collapsed && (
+                <div className="absolute left-16 ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                  {link.label}
+                </div>
+              )}
             </Link>
           );
         })}
