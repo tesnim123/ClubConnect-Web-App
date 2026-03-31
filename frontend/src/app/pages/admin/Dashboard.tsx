@@ -28,10 +28,13 @@ export default function AdminDashboard() {
       <Sidebar role="admin" />
       
       <div className="flex-1 flex flex-col overflow-hidden">
-        <TopNav
-          userName="Admin"
-          notificationCount={7}
-        />
+        <TopNav 
+  userId="admin_1"
+  userName="Admin User"
+  userRole="Administrateur"
+  userRoleType="admin"
+  notificationCount={5}
+/>
 
         <main className="flex-1 overflow-y-auto bg-[#F7F8FC] p-6">
           <div className="mb-6">
