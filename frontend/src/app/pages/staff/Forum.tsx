@@ -4,6 +4,7 @@ import {
   CheckCircle,
   Eye,
   FileText,
+  Image as ImageIcon,
   MessageCircle,
   MoreHorizontal,
   Pin,
@@ -50,6 +51,7 @@ export default function StaffForum() {
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [newPostTitle, setNewPostTitle] = useState("");
   const [newPostBody, setNewPostBody] = useState("");
+  const [activeTab, setActiveTab] = useState<"discussion" | "featured" | "media" | "files">("discussion");
   const [posts, setPosts] = useState(forumPosts.filter((post) => post.clubId === actor.clubId));
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
 
@@ -68,7 +70,61 @@ export default function StaffForum() {
     [posts, searchQuery, selectedForumId],
   );
 
-  const highlightedPost = filteredPosts[0];
+  const featuredPosts = useMemo(
+    () => filteredPosts.filter((post) => post.isPinned || post.reactions >= 10),
+    [filteredPosts],
+  );
+
+  const mediaPosts = useMemo(
+    () =>
+      filteredPosts.filter((post) =>
+        post.attachments?.some((attachment) => attachment.type === "image"),
+      ),
+    [filteredPosts],
+  );
+
+  const filePosts = useMemo(
+    () => filteredPosts.filter((post) => (post.attachments?.length ?? 0) > 0),
+    [filteredPosts],
+  );
+
+  const visiblePosts = useMemo(() => {
+    switch (activeTab) {
+      case "featured":
+        return featuredPosts;
+      case "media":
+        return mediaPosts;
+      case "files":
+        return filePosts;
+      default:
+        return filteredPosts;
+    }
+  }, [activeTab, featuredPosts, mediaPosts, filePosts, filteredPosts]);
+
+  const highlightedPost = featuredPosts[0] ?? filteredPosts[0];
+
+  const emptyState = {
+    discussion: {
+      title: "Aucune publication",
+      description: "Lancez la conversation avec un premier post.",
+      icon: MessageCircle,
+    },
+    featured: {
+      title: "Aucune publication a la une",
+      description: "Epinglez un post ou laissez l'activite mettre en avant les sujets importants.",
+      icon: Pin,
+    },
+    media: {
+      title: "Aucun media partage",
+      description: "Les publications avec images apparaitront ici.",
+      icon: ImageIcon,
+    },
+    files: {
+      title: "Aucun fichier partage",
+      description: "Les posts avec pieces jointes seront centralises ici.",
+      icon: FileText,
+    },
+  }[activeTab];
 
   const publishPost = () => {
     if (!selectedForum || !newPostTitle.trim() || !newPostBody.trim()) {
@@ -154,7 +210,7 @@ export default function StaffForum() {
         <main className="flex-1 overflow-y-auto bg-[#EEF2F7] p-6">
           <div className="mx-auto max-w-7xl">
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-[300px_minmax(0,1fr)_280px]">
-              <aside className="space-y-5">
+              <aside className="space-y-5 xl:sticky xl:top-6 xl:self-start">
                 <Card className="overflow-hidden gap-0">
                   <div className="bg-gradient-to-br from-[#1B2A4A] via-[#214F72] to-[#0EA8A8] p-5 text-white">
                     <div className="flex items-center gap-3 mb-4">
@@ -221,7 +277,7 @@ export default function StaffForum() {
                 </Card>
               </aside>
 
-              <section className="space-y-5">
+              <section className="space-y-5 min-w-0">
                 {selectedForum && (
                   <>
                     <Card className="overflow-hidden gap-0 border-none shadow-sm">
@@ -271,16 +327,44 @@ export default function StaffForum() {
 
                       <div className="border-t bg-white px-4 py-3">
                         <div className="flex flex-wrap items-center gap-2">
-                          <button className="rounded-xl bg-[#EAF4F4] px-4 py-2 text-sm font-medium text-[#0A7878]">
+                          <button
+                            onClick={() => setActiveTab("discussion")}
+                            className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
+                              activeTab === "discussion"
+                                ? "bg-[#EAF4F4] text-[#0A7878]"
+                                : "text-gray-500 hover:bg-[#F1F4F9]"
+                            }`}
+                          >
                             Discussion
                           </button>
-                          <button className="rounded-xl px-4 py-2 text-sm font-medium text-gray-500 hover:bg-[#F1F4F9]">
+                          <button
+                            onClick={() => setActiveTab("featured")}
+                            className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
+                              activeTab === "featured"
+                                ? "bg-[#EAF4F4] text-[#0A7878]"
+                                : "text-gray-500 hover:bg-[#F1F4F9]"
+                            }`}
+                          >
                             A la une
                           </button>
-                          <button className="rounded-xl px-4 py-2 text-sm font-medium text-gray-500 hover:bg-[#F1F4F9]">
+                          <button
+                            onClick={() => setActiveTab("media")}
+                            className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
+                              activeTab === "media"
+                                ? "bg-[#EAF4F4] text-[#0A7878]"
+                                : "text-gray-500 hover:bg-[#F1F4F9]"
+                            }`}
+                          >
                             Medias
                           </button>
-                          <button className="rounded-xl px-4 py-2 text-sm font-medium text-gray-500 hover:bg-[#F1F4F9]">
+                          <button
+                            onClick={() => setActiveTab("files")}
+                            className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
+                              activeTab === "files"
+                                ? "bg-[#EAF4F4] text-[#0A7878]"
+                                : "text-gray-500 hover:bg-[#F1F4F9]"
+                            }`}
+                          >
                             Fichiers
                           </button>
                         </div>
@@ -321,15 +405,15 @@ export default function StaffForum() {
                       </div>
                     </Card>
 
-                    {filteredPosts.length === 0 ? (
+                    {visiblePosts.length === 0 ? (
                       <Card className="border-none p-12 text-center shadow-sm">
-                        <MessageCircle className="mx-auto mb-4 w-12 h-12 text-gray-300" />
-                        <h3 className="text-lg font-semibold text-[#1B2A4A] mb-2">Aucune publication</h3>
-                        <p className="text-gray-500">Lancez la conversation avec un premier post.</p>
+                        <emptyState.icon className="mx-auto mb-4 h-12 w-12 text-gray-300" />
+                        <h3 className="mb-2 text-lg font-semibold text-[#1B2A4A]">{emptyState.title}</h3>
+                        <p className="text-gray-500">{emptyState.description}</p>
                       </Card>
                     ) : (
-                      filteredPosts.map((post) => (
-                        <Card key={post.id} className="gap-0 overflow-hidden border-none shadow-sm">
+                      visiblePosts.map((post) => (
+                        <Card key={post.id} className="gap-0 overflow-visible border-none shadow-sm">
                           {post.isPinned && (
                             <div className="flex items-center gap-2 border-b bg-[#FFF5DD] px-5 py-3 text-sm text-[#8A6200]">
                               <Pin className="w-4 h-4" />
@@ -360,7 +444,7 @@ export default function StaffForum() {
 
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="h-9 w-9 rounded-full p-0">
+                                  <Button variant="ghost" size="sm" className="h-9 w-9 shrink-0 rounded-full p-0">
                                     <MoreHorizontal className="w-4 h-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
@@ -388,6 +472,51 @@ export default function StaffForum() {
                                 </Badge>
                               ))}
                             </div>
+
+                            {activeTab === "media" && post.attachments?.some((attachment) => attachment.type === "image") && (
+                              <div className="mb-4 rounded-2xl border border-[#DCE6F0] bg-[#F7FAFC] p-4">
+                                <div className="mb-3 flex items-center gap-2 text-sm font-medium text-[#1B2A4A]">
+                                  <ImageIcon className="h-4 w-4 text-[#0EA8A8]" />
+                                  Galerie du post
+                                </div>
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                  {post.attachments
+                                    ?.filter((attachment) => attachment.type === "image")
+                                    .map((attachment) => (
+                                      <div
+                                        key={attachment.id}
+                                        className="rounded-2xl bg-[linear-gradient(135deg,#E9F4F3_0%,#DCEBF4_100%)] p-4"
+                                      >
+                                        <p className="font-medium text-[#1B2A4A]">{attachment.name}</p>
+                                        <p className="mt-1 text-sm text-gray-500">Media partage dans ce forum</p>
+                                      </div>
+                                    ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {activeTab === "files" && post.attachments && post.attachments.length > 0 && (
+                              <div className="mb-4 rounded-2xl border border-[#DCE6F0] bg-[#F7FAFC] p-4">
+                                <div className="mb-3 flex items-center gap-2 text-sm font-medium text-[#1B2A4A]">
+                                  <FileText className="h-4 w-4 text-[#0EA8A8]" />
+                                  Fichiers du post
+                                </div>
+                                <div className="space-y-3">
+                                  {post.attachments.map((attachment) => (
+                                    <div
+                                      key={attachment.id}
+                                      className="flex items-center justify-between rounded-2xl bg-white px-4 py-3"
+                                    >
+                                      <div>
+                                        <p className="font-medium text-[#1B2A4A]">{attachment.name}</p>
+                                        <p className="text-sm text-gray-500">{attachment.type}</p>
+                                      </div>
+                                      <Badge variant="outline">{attachment.size ?? "Document"}</Badge>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
 
                             <div className="flex items-center justify-between border-t border-b border-gray-100 py-3 text-sm text-gray-500">
                               <div className="flex items-center gap-4">
@@ -424,7 +553,7 @@ export default function StaffForum() {
                 )}
               </section>
 
-              <aside className="space-y-5">
+              <aside className="space-y-5 xl:sticky xl:top-6 xl:self-start">
                 <Card className="p-5">
                   <h2 className="text-lg font-bold text-[#1B2A4A] mb-4">A la une</h2>
                   {highlightedPost ? (
