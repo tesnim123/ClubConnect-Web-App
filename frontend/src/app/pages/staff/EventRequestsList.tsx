@@ -24,7 +24,7 @@ export default function EventRequestsList() {
           userName={`${staffUser.firstName} ${staffUser.lastName}`}
           userAvatar={staffUser.avatar}
           userRole="President"
-          userRoleType="staff"
+          userRoleType="president"
           notificationCount={clubEvents.length}
         />
 
@@ -38,7 +38,7 @@ export default function EventRequestsList() {
             </div>
 
             <Button className="bg-[#0EA8A8] hover:bg-[#0c8e8e]" asChild>
-              <Link to="/staff/event/new">
+              <Link to="/president/event/new">
                 <PlusCircle className="w-4 h-4 mr-2" />
                 Ajouter un evenement
               </Link>

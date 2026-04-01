@@ -26,7 +26,7 @@ export default function StaffDashboard() {
           userName={`${president.firstName} ${president.lastName}`}
           userAvatar={president.avatar}
           userRole="President"
-          userRoleType="staff"
+          userRoleType="president"
           notificationCount={pendingJoinRequests + pendingChannelRequests}
         />
 
@@ -42,10 +42,10 @@ export default function StaffDashboard() {
 
             <div className="flex flex-wrap gap-3">
               <Button className="bg-[#0EA8A8] hover:bg-[#0c8e8e]" asChild>
-                <Link to="/staff/event/new">Ajouter un evenement</Link>
+                <Link to="/president/event/new">Ajouter un evenement</Link>
               </Button>
               <Button variant="outline" asChild>
-                <Link to="/staff/members">Traiter les demandes</Link>
+                <Link to="/president/members">Traiter les demandes</Link>
               </Button>
             </div>
           </div>

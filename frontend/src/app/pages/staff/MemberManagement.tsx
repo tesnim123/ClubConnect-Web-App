@@ -166,7 +166,7 @@ export default function MemberManagement() {
           userName={`${president.firstName} ${president.lastName}`}
           userAvatar={president.avatar}
           userRole="President"
-          userRoleType="staff"
+          userRoleType="president"
           notificationCount={requests.length}
         />
 

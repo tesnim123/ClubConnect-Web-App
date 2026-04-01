@@ -54,10 +54,12 @@ export const router = createBrowserRouter([
 // Dans routes.tsx
 { path: "admin/profile/:id", Component: Profile },
 { path: "staff/profile/:id", Component: Profile },
+{ path: "president/profile/:id", Component: Profile },
 { path: "member/profile/:id", Component: Profile },
 // routes.tsx
 { path: "admin/notifications/:id", Component: Notifications },
 { path: "staff/notifications/:id", Component: Notifications },
+{ path: "president/notifications/:id", Component: Notifications },
 { path: "member/notifications/:id", Component: Notifications },
 
 // Ajouter dans les routes appropriées selon le rôle
@@ -65,6 +67,8 @@ export const router = createBrowserRouter([
 { path: "admin/notifications", Component: Notifications },
 // Pour staff:
 { path: "staff/notifications", Component: Notifications },
+// Pour president:
+{ path: "president/notifications", Component: Notifications },
 // Pour member:
 { path: "member/notifications", Component: Notifications },
       // Member routes
@@ -82,6 +86,15 @@ export const router = createBrowserRouter([
       { path: "staff/channels", Component: ChannelManagement },
       { path: "staff/forum", Component: StaffForum },
       { path: "staff/profile", Component: StaffProfile },
+
+      // President routes
+      { path: "president/dashboard", Component: StaffDashboard },
+      { path: "president/members", Component: MemberManagement },
+      { path: "president/event/new", Component: EventRequestCreation },
+      { path: "president/events", Component: EventRequestsList },
+      { path: "president/channels", Component: ChannelManagement },
+      { path: "president/forum", Component: StaffForum },
+      { path: "president/profile", Component: StaffProfile },
       
       // Admin routes
       { path: "admin/dashboard", Component: AdminDashboard },

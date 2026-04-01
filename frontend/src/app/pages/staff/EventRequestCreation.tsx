@@ -61,7 +61,7 @@ export default function EventRequestCreation() {
           userName={`${staffUser.firstName} ${staffUser.lastName}`}
           userAvatar={staffUser.avatar}
           userRole="President"
-          userRoleType="staff"
+          userRoleType="president"
           notificationCount={2}
         />
 

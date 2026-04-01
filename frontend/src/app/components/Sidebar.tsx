@@ -34,12 +34,12 @@ export function Sidebar({ role, collapsed = false }: SidebarProps) {
   ];
 
   const presidentLinks = [
-    { to: "/staff/dashboard", icon: ShieldCheck, label: "Dashboard" },
-    { to: "/staff/events", icon: Calendar, label: "Evenements" },
-    { to: "/staff/members", icon: Users, label: "Membres" },
-    { to: "/staff/channels", icon: MessageSquare, label: "Canaux" },
-    { to: "/staff/forum", icon: MessagesSquare, label: "Forum" },
-    { to: "/staff/profile", icon: Settings, label: "Profil" },
+    { to: "/president/dashboard", icon: ShieldCheck, label: "Dashboard" },
+    { to: "/president/events", icon: Calendar, label: "Evenements" },
+    { to: "/president/members", icon: Users, label: "Membres" },
+    { to: "/president/channels", icon: MessageSquare, label: "Canaux" },
+    { to: "/president/forum", icon: MessagesSquare, label: "Forum" },
+    { to: "/president/profile", icon: Settings, label: "Profil" },
   ];
 
   const adminLinks = [

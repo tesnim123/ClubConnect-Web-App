@@ -31,7 +31,7 @@ export default function StaffProfile() {
           userName={`${president.firstName} ${president.lastName}`}
           userAvatar={president.avatar}
           userRole="President"
-          userRoleType="staff"
+          userRoleType="president"
           notificationCount={3}
         />
 

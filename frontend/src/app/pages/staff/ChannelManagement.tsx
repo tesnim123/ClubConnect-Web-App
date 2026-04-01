@@ -121,7 +121,7 @@ export default function ChannelManagement() {
           userName={`${president.firstName} ${president.lastName}`}
           userAvatar={president.avatar}
           userRole="President"
-          userRoleType="staff"
+          userRoleType="president"
           notificationCount={channels.length}
         />
 
