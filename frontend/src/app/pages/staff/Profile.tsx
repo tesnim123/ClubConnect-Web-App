@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "react-router";
 import { Calendar, Edit2, Mail, Shield, Users } from "lucide-react";
 import { Sidebar } from "../../components/Sidebar";
 import { TopNav } from "../../components/TopNav";
@@ -13,25 +14,29 @@ import { Switch } from "../../components/ui/switch";
 import { members } from "../../data/mockData";
 
 export default function StaffProfile() {
-  const president = members.find((member) => member.role === "president") ?? members[0];
+  const location = useLocation();
+  const isPresidentView = location.pathname.startsWith("/president");
+  const actor = isPresidentView
+    ? members.find((member) => member.role === "president") ?? members[0]
+    : members.find((member) => member.role === "staff") ?? members[0];
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: president.firstName,
-    lastName: president.lastName,
-    email: president.email,
+    firstName: actor.firstName,
+    lastName: actor.lastName,
+    email: actor.email,
   });
 
   return (
     <div className="flex h-screen">
-      <Sidebar role="president" />
+      <Sidebar role={isPresidentView ? "president" : "staff"} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopNav
-          userId={president.id}
-          userName={`${president.firstName} ${president.lastName}`}
-          userAvatar={president.avatar}
-          userRole="President"
-          userRoleType="president"
+          userId={actor.id}
+          userName={`${actor.firstName} ${actor.lastName}`}
+          userAvatar={actor.avatar}
+          userRole={isPresidentView ? "President" : "Staff"}
+          userRoleType={isPresidentView ? "president" : "staff"}
           notificationCount={3}
         />
 
@@ -42,19 +47,19 @@ export default function StaffProfile() {
               <div className="p-6">
                 <div className="flex items-start gap-6 -mt-16">
                   <Avatar className="w-24 h-24 border-4 border-white">
-                    <AvatarImage src={president.avatar} />
+                    <AvatarImage src={actor.avatar} />
                     <AvatarFallback className="text-2xl">
-                      {president.firstName[0]}
-                      {president.lastName[0]}
+                      {actor.firstName[0]}
+                      {actor.lastName[0]}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 pt-16">
                     <div className="flex items-start justify-between">
                       <div>
                         <h1 className="text-2xl font-bold text-[#1B2A4A]">
-                          {president.firstName} {president.lastName}
+                          {actor.firstName} {actor.lastName}
                         </h1>
-                        <p className="text-gray-600">{president.email}</p>
+                        <p className="text-gray-600">{actor.email}</p>
                       </div>
                       <Button variant="outline" onClick={() => setIsEditing((prev) => !prev)}>
                         <Edit2 className="w-4 h-4 mr-2" />
@@ -62,14 +67,14 @@ export default function StaffProfile() {
                       </Button>
                     </div>
                     <div className="flex items-center gap-3 mt-3">
-                      <Badge className="bg-[#1B2A4A]">President</Badge>
+                      <Badge className="bg-[#1B2A4A]">{isPresidentView ? "President" : "Staff"}</Badge>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Shield className="w-4 h-4" />
-                        <span>{president.clubName}</span>
+                        <span>{actor.clubName}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Calendar className="w-4 h-4" />
-                        <span>Depuis {president.joinDate}</span>
+                        <span>Depuis {actor.joinDate}</span>
                       </div>
                     </div>
                   </div>
@@ -125,7 +130,7 @@ export default function StaffProfile() {
                       <Mail className="w-5 h-5 text-gray-400" />
                       <div>
                         <p className="text-sm text-gray-600">Email</p>
-                        <p className="font-semibold text-[#1B2A4A]">{president.email}</p>
+                        <p className="font-semibold text-[#1B2A4A]">{actor.email}</p>
                       </div>
                     </div>
                     <Separator />
@@ -133,7 +138,7 @@ export default function StaffProfile() {
                       <Shield className="w-5 h-5 text-gray-400" />
                       <div>
                         <p className="text-sm text-gray-600">Role</p>
-                        <p className="font-semibold text-[#1B2A4A]">President du club</p>
+                        <p className="font-semibold text-[#1B2A4A]">{isPresidentView ? "President du club" : "Membre du staff"}</p>
                       </div>
                     </div>
                     <Separator />
@@ -141,7 +146,7 @@ export default function StaffProfile() {
                       <Users className="w-5 h-5 text-gray-400" />
                       <div>
                         <p className="text-sm text-gray-600">Club</p>
-                        <p className="font-semibold text-[#1B2A4A]">{president.clubName}</p>
+                        <p className="font-semibold text-[#1B2A4A]">{actor.clubName}</p>
                       </div>
                     </div>
                   </div>
@@ -153,8 +158,10 @@ export default function StaffProfile() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-semibold text-[#1B2A4A]">Notifications des demandes</p>
-                      <p className="text-sm text-gray-600">Recevoir les nouvelles adhesions</p>
+                      <p className="font-semibold text-[#1B2A4A]">{isPresidentView ? "Notifications des demandes" : "Notifications du club"}</p>
+                      <p className="text-sm text-gray-600">
+                        {isPresidentView ? "Recevoir les nouvelles adhesions" : "Recevoir les activites importantes du club"}
+                      </p>
                     </div>
                     <Switch defaultChecked />
                   </div>

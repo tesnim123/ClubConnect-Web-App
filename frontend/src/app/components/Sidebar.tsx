@@ -30,6 +30,7 @@ export function Sidebar({ role, collapsed = false }: SidebarProps) {
     { to: "/staff/dashboard", icon: Home, label: "Tableau de bord" },
     { to: "/staff/events", icon: Calendar, label: "Evenements" },
     { to: "/staff/channels", icon: MessageSquare, label: "Canaux" },
+    { to: "/staff/forum", icon: MessagesSquare, label: "Forum" },
     { to: "/staff/profile", icon: Settings, label: "Profil" },
   ];
 

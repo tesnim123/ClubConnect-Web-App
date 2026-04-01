@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { Calendar, MapPin, PlusCircle, Users, Wrench } from "lucide-react";
 import { Sidebar } from "../../components/Sidebar";
 import { TopNav } from "../../components/TopNav";
@@ -8,23 +8,26 @@ import { Card } from "../../components/ui/card";
 import { events, members } from "../../data/mockData";
 
 export default function EventRequestsList() {
-  const staffUser = members.find((member) => member.role === "president") ?? members[0];
-  const sidebarRole = staffUser.role === "president" ? "president" : "staff";
-  const clubEvents = events.filter((event) => event.clubId === staffUser.clubId);
+  const location = useLocation();
+  const isPresidentView = location.pathname.startsWith("/president");
+  const actor = isPresidentView
+    ? members.find((member) => member.role === "president") ?? members[0]
+    : members.find((member) => member.role === "staff") ?? members[0];
+  const clubEvents = events.filter((event) => event.clubId === actor.clubId);
   const workshops = clubEvents.filter((event) => event.format === "workshop");
   const classicEvents = clubEvents.filter((event) => event.format !== "workshop");
 
   return (
     <div className="flex h-screen">
-      <Sidebar role={sidebarRole} />
+      <Sidebar role={isPresidentView ? "president" : "staff"} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopNav
-          userId={staffUser.id}
-          userName={`${staffUser.firstName} ${staffUser.lastName}`}
-          userAvatar={staffUser.avatar}
-          userRole="President"
-          userRoleType="president"
+          userId={actor.id}
+          userName={`${actor.firstName} ${actor.lastName}`}
+          userAvatar={actor.avatar}
+          userRole={isPresidentView ? "President" : "Staff"}
+          userRoleType={isPresidentView ? "president" : "staff"}
           notificationCount={clubEvents.length}
         />
 
@@ -33,12 +36,14 @@ export default function EventRequestsList() {
             <div>
               <h1 className="text-3xl font-bold text-[#1B2A4A] mb-2">Evenements et workshops</h1>
               <p className="text-gray-600">
-                Le president voit tous les rendez-vous du club et peut en ajouter de nouveaux.
+                {isPresidentView
+                  ? "Le president voit tous les rendez-vous du club et peut en ajouter de nouveaux."
+                  : "Le staff suit les rendez-vous du club et peut en ajouter de nouveaux."}
               </p>
             </div>
 
             <Button className="bg-[#0EA8A8] hover:bg-[#0c8e8e]" asChild>
-              <Link to="/president/event/new">
+              <Link to={isPresidentView ? "/president/event/new" : "/staff/event/new"}>
                 <PlusCircle className="w-4 h-4 mr-2" />
                 Ajouter un evenement
               </Link>

@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
+import { useLocation } from "react-router";
 import {
   CheckCircle,
   ChevronRight,
+  MoreHorizontal,
   MessageCircle,
   Plus,
   Search,
@@ -15,6 +17,12 @@ import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../../components/ui/dropdown-menu";
+import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -26,14 +34,19 @@ import { Textarea } from "../../components/ui/textarea";
 import { clubForums, forumPosts, members } from "../../data/mockData";
 
 export default function StaffForum() {
-  const president = members.find((member) => member.role === "president") ?? members[0];
-  const forums = clubForums.filter((forum) => forum.clubId === president.clubId);
+  const location = useLocation();
+  const isPresidentView = location.pathname.startsWith("/president");
+  const actor = isPresidentView
+    ? members.find((member) => member.role === "president") ?? members[0]
+    : members.find((member) => member.role === "staff") ?? members[0];
+  const forums = clubForums.filter((forum) => forum.clubId === actor.clubId);
   const [selectedForumId, setSelectedForumId] = useState(forums[0]?.id ?? "");
   const [searchQuery, setSearchQuery] = useState("");
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
   const [newPostTitle, setNewPostTitle] = useState("");
   const [newPostBody, setNewPostBody] = useState("");
-  const [posts, setPosts] = useState(forumPosts.filter((post) => post.clubId === president.clubId));
+  const [posts, setPosts] = useState(forumPosts.filter((post) => post.clubId === actor.clubId));
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
 
   const selectedForum = forums.find((forum) => forum.id === selectedForumId) ?? null;
   const filteredPosts = useMemo(
@@ -54,41 +67,77 @@ export default function StaffForum() {
       return;
     }
 
-    setPosts((prev) => [
-      {
-        id: `${Date.now()}`,
-        forumId: selectedForum.id,
-        clubId: president.clubId,
-        clubName: president.clubName,
-        authorId: president.id,
-        authorName: `${president.firstName} ${president.lastName}`,
-        authorAvatar: president.avatar,
-        title: newPostTitle,
-        body: newPostBody,
-        tags: [selectedForum.visibility === "staff" ? "Staff" : "Club"],
-        reactions: 0,
-        commentCount: 0,
-        timestamp: new Date().toISOString(),
-      },
-      ...prev,
-    ]);
+    if (editingPostId) {
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.id === editingPostId
+            ? { ...post, title: newPostTitle, body: newPostBody }
+            : post,
+        ),
+      );
+      toast.success("Post mis a jour.");
+    } else {
+      setPosts((prev) => [
+        {
+          id: `${Date.now()}`,
+          forumId: selectedForum.id,
+          clubId: actor.clubId,
+          clubName: actor.clubName,
+          authorId: actor.id,
+          authorName: `${actor.firstName} ${actor.lastName}`,
+          authorAvatar: actor.avatar,
+          title: newPostTitle,
+          body: newPostBody,
+          tags: [selectedForum.visibility === "staff" ? "Staff" : "Club"],
+          reactions: 0,
+          commentCount: 0,
+          timestamp: new Date().toISOString(),
+          isPinned: false,
+        },
+        ...prev,
+      ]);
+      toast.success("Post publie.");
+    }
     setNewPostTitle("");
     setNewPostBody("");
+    setEditingPostId(null);
     setIsPostModalOpen(false);
-    toast.success("Post publie.");
+  };
+
+  const handleEditPost = (postId: string) => {
+    const post = posts.find((item) => item.id === postId);
+    if (!post) return;
+    setEditingPostId(postId);
+    setNewPostTitle(post.title);
+    setNewPostBody(post.body);
+    setIsPostModalOpen(true);
+  };
+
+  const handleDeletePost = (postId: string) => {
+    setPosts((prev) => prev.filter((post) => post.id !== postId));
+    toast.success("Post supprime.");
+  };
+
+  const handleTogglePin = (postId: string) => {
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === postId ? { ...post, isPinned: !post.isPinned } : post,
+      ),
+    );
+    toast.success("Configuration du post mise a jour.");
   };
 
   return (
     <div className="flex h-screen">
-      <Sidebar role="president" />
+      <Sidebar role={isPresidentView ? "president" : "staff"} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopNav
-          userId={president.id}
-          userName={`${president.firstName} ${president.lastName}`}
-          userAvatar={president.avatar}
-          userRole="President"
-          userRoleType="president"
+          userId={actor.id}
+          userName={`${actor.firstName} ${actor.lastName}`}
+          userAvatar={actor.avatar}
+          userRole={isPresidentView ? "President" : "Staff"}
+          userRoleType={isPresidentView ? "president" : "staff"}
           notificationCount={posts.length}
         />
 
@@ -178,6 +227,7 @@ export default function StaffForum() {
                             <div className="flex items-center gap-2">
                               <span className="font-semibold text-[#1B2A4A]">{post.authorName}</span>
                               <Badge variant="outline">{selectedForum.visibility === "staff" ? "Staff" : "Club"}</Badge>
+                              {post.isPinned && <Badge className="bg-[#F5A623]">Epingle</Badge>}
                             </div>
                             <div className="flex items-center gap-2 text-xs text-gray-400">
                               <span>{new Date(post.timestamp).toLocaleDateString("fr-FR")}</span>
@@ -185,6 +235,24 @@ export default function StaffForum() {
                             </div>
                           </div>
                         </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleTogglePin(post.id)}>
+                              {post.isPinned ? "Retirer l epingle" : "Epingler"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditPost(post.id)}>
+                              Modifier
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDeletePost(post.id)}>
+                              Supprimer
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
 
                       <h3 className="text-lg font-bold text-[#1B2A4A] mb-2">{post.title}</h3>
@@ -231,7 +299,7 @@ export default function StaffForum() {
       <Dialog open={isPostModalOpen} onOpenChange={setIsPostModalOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Creer une publication</DialogTitle>
+            <DialogTitle>{editingPostId ? "Modifier la publication" : "Creer une publication"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <Input
@@ -251,7 +319,7 @@ export default function StaffForum() {
               Annuler
             </Button>
             <Button onClick={publishPost} className="bg-[#0EA8A8]">
-              Publier
+              {editingPostId ? "Enregistrer" : "Publier"}
             </Button>
           </DialogFooter>
         </DialogContent>

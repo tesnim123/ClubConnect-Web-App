@@ -28,13 +28,18 @@ import {
 import { Input } from "../../components/ui/input";
 import { ScrollArea } from "../../components/ui/scroll-area";
 import { Textarea } from "../../components/ui/textarea";
+import { useLocation } from "react-router";
 import { channels as seedChannels, members as seedMembers, messages as seedMessages } from "../../data/mockData";
 import type { Channel, Message } from "../../data/mockData";
 
 export default function ChannelManagement() {
-  const president = seedMembers.find((member) => member.role === "president") ?? seedMembers[0];
+  const location = useLocation();
+  const isPresidentView = location.pathname.startsWith("/president");
+  const actor = isPresidentView
+    ? seedMembers.find((member) => member.role === "president") ?? seedMembers[0]
+    : seedMembers.find((member) => member.role === "staff") ?? seedMembers[0];
   const [channels, setChannels] = useState<Channel[]>(
-    seedChannels.filter((channel) => !channel.clubId || channel.clubId === president.clubId),
+    seedChannels.filter((channel) => !channel.clubId || channel.clubId === actor.clubId),
   );
   const [selectedChannelId, setSelectedChannelId] = useState(channels[0]?.id ?? "");
   const [messageInput, setMessageInput] = useState("");
@@ -55,8 +60,8 @@ export default function ChannelManagement() {
   const selectedChannel = channels.find((channel) => channel.id === selectedChannelId) ?? channels[0];
   const availableMembers = seedMembers.filter(
     (member) =>
-      member.clubId === president.clubId &&
-      member.id !== president.id &&
+      member.clubId === actor.clubId &&
+      member.id !== actor.id &&
       member.status === "active",
   );
 
@@ -93,11 +98,11 @@ export default function ChannelManagement() {
       id: `channel-${Date.now()}`,
       name: newChannelName.toLowerCase().replace(/\s+/g, "-"),
       type: "staff",
-      clubId: president.clubId,
+      clubId: actor.clubId,
       description: newChannelDescription || "Nouveau canal du club",
       icon: invitedIds.length > 0 ? "users" : "#",
       unreadCount: 0,
-      members: [president.id, ...invitedIds],
+      members: [actor.id, ...invitedIds],
       isPrivate: true,
     };
 
@@ -113,15 +118,15 @@ export default function ChannelManagement() {
 
   return (
     <div className="flex h-screen">
-      <Sidebar role="president" />
+      <Sidebar role={isPresidentView ? "president" : "staff"} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopNav
-          userId={president.id}
-          userName={`${president.firstName} ${president.lastName}`}
-          userAvatar={president.avatar}
-          userRole="President"
-          userRoleType="president"
+          userId={actor.id}
+          userName={`${actor.firstName} ${actor.lastName}`}
+          userAvatar={actor.avatar}
+          userRole={isPresidentView ? "President" : "Staff"}
+          userRoleType={isPresidentView ? "president" : "staff"}
           notificationCount={channels.length}
         />
 
@@ -131,7 +136,7 @@ export default function ChannelManagement() {
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div>
                   <h2 className="font-bold text-[#1B2A4A]">Canaux</h2>
-                  <p className="text-sm text-gray-600">{president.clubName}</p>
+                  <p className="text-sm text-gray-600">{actor.clubName}</p>
                 </div>
                 <Button size="sm" className="bg-[#0EA8A8] hover:bg-[#0c8e8e]" onClick={() => setIsCreateOpen(true)}>
                   <Plus className="w-4 h-4" />
@@ -199,7 +204,7 @@ export default function ChannelManagement() {
 
             <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-4">
               {currentMessages.map((message: Message) => {
-                const isOwn = message.senderId === president.id;
+                const isOwn = message.senderId === actor.id;
                 return (
                   <div key={message.id} className={`flex items-start gap-3 ${isOwn ? "flex-row-reverse" : ""}`}>
                     {!isOwn && (

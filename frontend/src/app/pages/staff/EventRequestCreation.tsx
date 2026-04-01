@@ -1,3 +1,4 @@
+import { useLocation } from "react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Sidebar } from "../../components/Sidebar";
@@ -17,8 +18,11 @@ import {
 import { members } from "../../data/mockData";
 
 export default function EventRequestCreation() {
-  const staffUser = members.find((member) => member.role === "president") ?? members[0];
-  const sidebarRole = staffUser.role === "president" ? "president" : "staff";
+  const location = useLocation();
+  const isPresidentView = location.pathname.startsWith("/president");
+  const actor = isPresidentView
+    ? members.find((member) => member.role === "president") ?? members[0]
+    : members.find((member) => member.role === "staff") ?? members[0];
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -53,15 +57,15 @@ export default function EventRequestCreation() {
 
   return (
     <div className="flex h-screen">
-      <Sidebar role={sidebarRole} />
+      <Sidebar role={isPresidentView ? "president" : "staff"} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopNav
-          userId={staffUser.id}
-          userName={`${staffUser.firstName} ${staffUser.lastName}`}
-          userAvatar={staffUser.avatar}
-          userRole="President"
-          userRoleType="president"
+          userId={actor.id}
+          userName={`${actor.firstName} ${actor.lastName}`}
+          userAvatar={actor.avatar}
+          userRole={isPresidentView ? "President" : "Staff"}
+          userRoleType={isPresidentView ? "president" : "staff"}
           notificationCount={2}
         />
 
@@ -69,7 +73,7 @@ export default function EventRequestCreation() {
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
               <Badge className="bg-[#1B2A4A]">Creation president</Badge>
-              <Badge variant="outline">{staffUser.clubName}</Badge>
+              <Badge variant="outline">{actor.clubName}</Badge>
             </div>
             <h1 className="text-3xl font-bold text-[#1B2A4A] mb-2">Ajouter un evenement</h1>
             <p className="text-gray-600">
@@ -199,7 +203,7 @@ export default function EventRequestCreation() {
                 <div className="rounded-xl bg-[#1B2A4A] text-white p-4">
                   <p className="font-semibold mb-1">Droit president</p>
                   <p className="text-white/80">
-                    Cette page permet d&apos;ajouter directement les activites du club sans passer par un administrateur.
+                    Cette page permet d&apos;ajouter directement les activites du club.
                   </p>
                 </div>
               </div>
