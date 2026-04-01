@@ -245,7 +245,7 @@ export default function ClubDetails() {
         <Sidebar role="admin" />
         <div className="flex-1 flex flex-col overflow-hidden">
           <TopNav 
-  userId="admin_1"
+  userId="1"
   userName="Admin User"
   userRole="Administrateur"
   userRoleType="admin"

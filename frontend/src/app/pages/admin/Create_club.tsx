@@ -121,7 +121,7 @@ export default function CreateClub() {
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopNav 
-  userId="admin_1"
+  userId="1"
   userName="Admin User"
   userRole="Administrateur"
   userRoleType="admin"

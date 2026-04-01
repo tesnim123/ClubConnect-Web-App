@@ -1,28 +1,31 @@
 // components/TopNav.tsx
-import { Bell, LogOut, User, Settings, ChevronDown, X, CheckCircle, AlertCircle, Calendar, MessageSquare, Users } from "lucide-react";
+import { Bell, LogOut, User, Settings, ChevronDown, X, CheckCircle, AlertCircle, Calendar, MessageSquare, Users, FileText, Image, Paperclip } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
+import { currentUser } from "../data/mockData";
 
 interface Notification {
   id: string;
   title: string;
   message: string;
-  type: 'info' | 'success' | 'warning' | 'event' | 'message' | 'member';
+  type: 'info' | 'success' | 'warning' | 'event' | 'message' | 'member' | 'forum' | 'file';
   createdAt: string;
   isRead: boolean;
   link?: string;
+  image?: string;
+  sender?: { name: string; avatar?: string };
 }
 
 interface TopNavProps {
   userId?: string;
   userName: string;
-  userAvatar?: string;
+  userAvatar?: string | null;
   userRole?: string;
-  userRoleType?: 'admin' | 'staff' | 'member'; // Ajout du type de rôle pour la navigation
+  userRoleType?: 'admin' | 'staff' | 'president' | 'member' | 'vicepresident';
   notificationCount?: number;
   onNotificationClick?: () => void;
   onLogout?: () => void;
@@ -32,10 +35,9 @@ interface TopNavProps {
   onDeleteNotification?: (id: string) => void;
 }
 
-// Données d'exemple de notifications
 const defaultNotifications: Notification[] = [
   {
-    id: "admin_1",
+    id: "1",
     title: "Nouvel événement",
     message: "Le Hackathon 2024 a été approuvé",
     type: "event",
@@ -54,39 +56,21 @@ const defaultNotifications: Notification[] = [
   },
   {
     id: "3",
-    title: "Message reçu",
-    message: "Nouveau message dans le canal Staff Global",
-    type: "message",
+    title: "Fichier partagé",
+    message: "Jean a partagé un fichier dans le canal général",
+    type: "file",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
     isRead: false,
-    link: "/communication"
-  },
-  {
-    id: "4",
-    title: "Demande approuvée",
-    message: "La demande d'événement 'Concert de Printemps' a été approuvée",
-    type: "success",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-    isRead: true,
-    link: "/events"
-  },
-  {
-    id: "5",
-    title: "Nouveau forum",
-    message: "Un nouveau sujet a été créé dans le Forum Général",
-    type: "info",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-    isRead: true,
-    link: "/forums"
+    link: "/chat"
   }
 ];
 
 export function TopNav({ 
-  userId="admin_1",
-  userName, 
-  userAvatar, 
-  userRole = "Admin",
-  userRoleType = "member", // Par défaut member
+  userId = currentUser.id,
+  userName = `${currentUser.firstName} ${currentUser.lastName}`,
+  userAvatar = currentUser.avatar,
+  userRole = currentUser.roleLabel || "Membre",
+  userRoleType = currentUser.role || "member",
   notificationCount: externalNotificationCount,
   onNotificationClick,
   onLogout,
@@ -104,7 +88,6 @@ export function TopNav({
     externalNotifications || defaultNotifications
   );
 
-  // Fermer les dropdowns quand on clique en dehors
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -114,11 +97,8 @@ export function TopNav({
         setIsNotificationOpen(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleLogout = () => {
@@ -126,6 +106,7 @@ export function TopNav({
     if (onLogout) {
       onLogout();
     } else {
+      localStorage.removeItem('token');
       toast.success("Déconnexion réussie");
       navigate("/login");
     }
@@ -133,21 +114,12 @@ export function TopNav({
 
   const handleProfileClick = () => {
     setIsDropdownOpen(false);
-    if (userId) {
-      // Navigation selon le rôle
-      navigate(`/${userRoleType}/profile/${userId}`);
-    } else {
-      navigate(`/${userRoleType}/profile`);
-    }
+    navigate(`/${userRoleType}/profile/${userId}`);
   };
 
   const handleSettingsClick = () => {
     setIsDropdownOpen(false);
-    if (userId) {
-      navigate(`/${userRoleType}/settings/${userId}`);
-    } else {
-      navigate(`/${userRoleType}/settings`);
-    }
+    navigate(`/${userRoleType}/settings/${userId}`);
   };
 
   const handleNotificationClick = (notification: Notification) => {
@@ -159,22 +131,17 @@ export function TopNav({
       );
     }
     if (notification.link) {
-      // Navigation avec le préfixe du rôle
       navigate(`/${userRoleType}${notification.link}`);
     }
     setIsNotificationOpen(false);
-    if (onNotificationClick) {
-      onNotificationClick();
-    }
+    if (onNotificationClick) onNotificationClick();
   };
 
   const handleMarkAllAsRead = () => {
     if (onMarkAllAsRead) {
       onMarkAllAsRead();
     } else {
-      setNotifications(prev =>
-        prev.map(n => ({ ...n, isRead: true }))
-      );
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       toast.success("Toutes les notifications ont été marquées comme lues");
     }
   };
@@ -190,26 +157,20 @@ export function TopNav({
   };
 
   const getUnreadCount = () => {
-    if (externalNotificationCount !== undefined) {
-      return externalNotificationCount;
-    }
+    if (externalNotificationCount !== undefined) return externalNotificationCount;
     return notifications.filter(n => !n.isRead).length;
   };
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'success':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'warning':
-        return <AlertCircle className="w-4 h-4 text-yellow-500" />;
-      case 'event':
-        return <Calendar className="w-4 h-4 text-blue-500" />;
-      case 'message':
-        return <MessageSquare className="w-4 h-4 text-purple-500" />;
-      case 'member':
-        return <Users className="w-4 h-4 text-[#0EA8A8]" />;
-      default:
-        return <Bell className="w-4 h-4 text-gray-500" />;
+      case 'success': return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'warning': return <AlertCircle className="w-4 h-4 text-yellow-500" />;
+      case 'event': return <Calendar className="w-4 h-4 text-blue-500" />;
+      case 'message': return <MessageSquare className="w-4 h-4 text-purple-500" />;
+      case 'member': return <Users className="w-4 h-4 text-[#0EA8A8]" />;
+      case 'forum': return <MessageSquare className="w-4 h-4 text-indigo-500" />;
+      case 'file': return <FileText className="w-4 h-4 text-orange-500" />;
+      default: return <Bell className="w-4 h-4 text-gray-500" />;
     }
   };
 
@@ -229,14 +190,30 @@ export function TopNav({
     return date.toLocaleDateString('fr-FR');
   };
 
+  // Fonction pour obtenir les initiales du nom
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   const unreadCount = getUnreadCount();
+  
+  // Gérer l'avatar avec fallback
+  const getAvatarUrl = () => {
+    if (userAvatar && userAvatar !== 'null' && userAvatar !== 'undefined') {
+      return userAvatar;
+    }
+    // Utiliser DiceBear comme fallback avec les initiales ou un seed basé sur le nom
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userName)}`;
+  };
 
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-      <div className="flex-1">
-        {/* Breadcrumb or search could go here */}
-      </div>
-
+      <div className="flex-1" />
       <div className="flex items-center gap-4">
         {/* Notifications Dropdown */}
         <div className="relative" ref={notificationRef}>
@@ -273,7 +250,6 @@ export function TopNav({
                   <div className="flex flex-col items-center justify-center py-8 text-center">
                     <Bell className="w-12 h-12 text-gray-300 mb-2" />
                     <p className="text-gray-500">Aucune notification</p>
-                    <p className="text-xs text-gray-400">Les notifications apparaîtront ici</p>
                   </div>
                 ) : (
                   notifications.map((notification) => (
@@ -300,7 +276,7 @@ export function TopNav({
                             </div>
                             <button
                               onClick={(e) => handleDeleteNotification(notification.id, e)}
-                              className="flex-shrink-0 text-gray-400 hover:text-red-500 transition-colors"
+                              className="flex-shrink-0 text-gray-400 hover:text-red-500"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -320,9 +296,9 @@ export function TopNav({
                   <button
                     onClick={() => {
                       setIsNotificationOpen(false);
-                      navigate(`/${userRoleType}/notifications`);
+                      navigate(`/${userRoleType}/notifications/${userId}`);
                     }}
-                    className="w-full text-center text-xs text-[#0EA8A8] hover:text-[#0c8e8e] transition-colors"
+                    className="w-full text-center text-xs text-[#0EA8A8] hover:text-[#0c8e8e]"
                   >
                     Voir toutes les notifications
                   </button>
@@ -338,17 +314,23 @@ export function TopNav({
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className="flex items-center gap-3 hover:bg-gray-100 transition-colors rounded-lg px-2 py-1"
           >
-            <Avatar>
-              <AvatarImage src={userAvatar} alt={userName} />
-              <AvatarFallback className="bg-[#0EA8A8] text-white">
-                {userName.split(' ').map(n => n[0]).join('')}
-              </AvatarFallback>
+            <Avatar className="w-10 h-10">
+              <AvatarImage 
+                src={getAvatarUrl()} 
+                alt={userName}
+                onError={(e) => {
+                  // Fallback en cas d'erreur de chargement
+                  e.currentTarget.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userName)}`;
+                }}
+              />
+              
             </Avatar>
+            
             <div className="text-sm text-left">
               <div className="font-semibold text-[#1B2A4A]">{userName}</div>
               <div className="text-xs text-gray-500">{userRole}</div>
             </div>
-            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {isDropdownOpen && (
@@ -360,7 +342,7 @@ export function TopNav({
               
               <button
                 onClick={handleProfileClick}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
               >
                 <User className="w-4 h-4 text-gray-500" />
                 <span>Mon profil</span>
@@ -368,17 +350,17 @@ export function TopNav({
               
               <button
                 onClick={handleSettingsClick}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
               >
                 <Settings className="w-4 h-4 text-gray-500" />
                 <span>Paramètres</span>
               </button>
               
-              <div className="border-t border-gray-100 my-1"></div>
+              <div className="border-t border-gray-100 my-1" />
               
               <button
                 onClick={handleLogout}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2 transition-colors"
+                className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Déconnexion</span>

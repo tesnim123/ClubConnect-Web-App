@@ -1,3 +1,4 @@
+// routes.tsx
 import { createBrowserRouter } from "react-router";
 import Root from "./pages/Root";
 import Landing from "./pages/Landing";
@@ -30,9 +31,12 @@ import CreateClub from "./pages/admin/Create_club";
 import ClubDetails from "./pages/admin/ClubDetails";
 
 import NotFound from "./pages/NotFound";
-import Profile from "./components/Profile";
+import Profile from "./pages/member/Profile";
+import Settings from "./components/Settings";
 import Notifications from "./components/Notifications";
-
+import AdminProfile from "./pages/admin/ProfileAdmin";
+import AdminSettings from "./pages/admin/SettingsAdmin";
+import AdminNotifications from "./pages/admin/NotificationsAdmin";
 export const router = createBrowserRouter([
   {
     path: "/",
@@ -43,26 +47,32 @@ export const router = createBrowserRouter([
       { path: "signup", Component: Signup },
       { path: "pending", Component: PendingApproval },
 
-      { path: "admin/profile/:id", Component: Profile },
+      // Profile routes with role prefix and dynamic ID
+      { path: "admin/profile/:id", Component: AdminProfile },//ok
       { path: "staff/profile/:id", Component: Profile },
       { path: "president/profile/:id", Component: Profile },
-      { path: "member/profile/:id", Component: Profile },
+      { path: "member/profile/:id", Component: Profile },//ok
 
-      { path: "admin/notifications", Component: Notifications },
-      { path: "staff/notifications", Component: Notifications },
-      { path: "president/notifications", Component: Notifications },
-      { path: "member/notifications", Component: Notifications },
-      { path: "admin/notifications/:id", Component: Notifications },
+      // Settings routes with role prefix and dynamic ID
+      { path: "admin/settings/:id", Component: AdminSettings },//ok
+      { path: "staff/settings/:id", Component: Settings },
+      { path: "president/settings/:id", Component: Settings },
+      { path: "member/settings/:id", Component: Settings },//ok
+
+      // Notifications routes with role prefix and dynamic ID
+      { path: "admin/notifications/:id", Component: AdminNotifications },//ok
       { path: "staff/notifications/:id", Component: Notifications },
       { path: "president/notifications/:id", Component: Notifications },
-      { path: "member/notifications/:id", Component: Notifications },
+      { path: "member/notifications/:id", Component: Notifications },//ok
 
+      // Member routes
       { path: "member/dashboard", Component: MemberDashboard },
       { path: "member/events", Component: MemberEvents },
       { path: "member/chat", Component: MemberChat },
       { path: "member/forum", Component: MemberForum },
       { path: "member/profile", Component: MemberProfile },
 
+      // Staff routes
       { path: "staff/dashboard", Component: StaffDashboard },
       { path: "staff/event/new", Component: EventRequestCreation },
       { path: "staff/events", Component: EventRequestsList },
@@ -70,6 +80,7 @@ export const router = createBrowserRouter([
       { path: "staff/forum", Component: StaffForum },
       { path: "staff/profile", Component: StaffProfile },
 
+      // President routes
       { path: "president/dashboard", Component: StaffDashboard },
       { path: "president/members", Component: MemberManagement },
       { path: "president/event/new", Component: EventRequestCreation },
@@ -78,6 +89,7 @@ export const router = createBrowserRouter([
       { path: "president/forum", Component: StaffForum },
       { path: "president/profile", Component: StaffProfile },
 
+      // Admin routes
       { path: "admin/dashboard", Component: AdminDashboard },
       { path: "admin/clubs", Component: ClubsManagement },
       { path: "admin/clubs/create", Component: CreateClub },

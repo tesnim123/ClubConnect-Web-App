@@ -214,6 +214,7 @@ const generateMockPosts = (clubId: string, clubName: string): Post[] => {
 
 export default function MemberForum() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [user, setUser] = useState(currentUser);
   const [selectedClub, setSelectedClub] = useState<ClubForum | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
@@ -242,6 +243,29 @@ export default function MemberForum() {
     clubId: currentUser.clubId,
     clubName: currentUser.clubName
   };
+
+  useEffect(() => {
+    const loadUser = () => {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        try {
+          const parsed = JSON.parse(storedUser);
+          setUser(parsed);
+          memberData.fullName = `${parsed.firstName} ${parsed.lastName}`;
+          memberData.avatar = parsed.avatar;
+        } catch (e) {}
+      }
+    };
+    
+    loadUser();
+    
+    const handleUserUpdated = () => {
+      loadUser();
+    };
+    
+    window.addEventListener('userUpdated', handleUserUpdated);
+    return () => window.removeEventListener('userUpdated', handleUserUpdated);
+  }, []);
 
   // Charger les posts du club sélectionné
   useEffect(() => {
@@ -657,8 +681,14 @@ export default function MemberForum() {
       <Sidebar role="member"  />
       
       <div className="flex-1 flex flex-col overflow-hidden">
-        <TopNav userId={memberData.id} userName={currentUser.firstName} userAvatar={memberData.avatar} userRole={memberData.roleLabel} userRoleType="member" notificationCount={3} onLogout={() => { localStorage.removeItem('token'); window.location.href = "/login"; }} />
-
+        <TopNav 
+          userId={user.id}
+          userName={`${user.firstName} ${user.lastName}`}
+          userAvatar={user.avatar}
+          userRole={user.roleLabel || "Membre"}
+          userRoleType={user.role}
+          notificationCount={3}
+        />
         <main className="flex-1 overflow-y-auto bg-gray-100 p-6">
           <div className="max-w-5xl mx-auto">
             <div className="mb-6">

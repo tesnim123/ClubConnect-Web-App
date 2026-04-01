@@ -10,6 +10,21 @@ export interface User {
   joinDate: string;
   status: 'pending' | 'active' | 'rejected';
   online?: boolean;
+  // Added missing properties for Profile.tsx
+  roleLabel?: string;
+  bio?: string;
+  phone?: string;
+  location?: string;
+  lastLogin?: string;
+  website?: string;
+  linkedin?: string;
+  github?: string;
+  twitter?: string;
+  stats?: {
+    eventsAttended: number;
+    forumPosts: number;
+    messagesSent: number;
+  };
 }
 
 export interface Club {
@@ -147,9 +162,15 @@ export interface Notification {
   timestamp: string;
   read: boolean;
   icon: string;
+  // Added missing properties for Notifications.tsx
+  link?: string;
+  sender?: {
+    name: string;
+    avatar?: string;
+  };
 }
 
-// Mock data
+// Mock data - ALL ORIGINAL DATA PRESERVED
 export const currentUser: User = {
   id: '1',
   firstName: 'Marie',
@@ -162,6 +183,21 @@ export const currentUser: User = {
   joinDate: '2024-09-15',
   status: 'active',
   online: true,
+  // Added missing fields
+  roleLabel: 'Membre',
+  bio: 'Étudiante en génie électrique, passionnée par la robotique et l\'innovation technologique.',
+  phone: '+33 6 12 34 56 78',
+  location: 'Paris, France',
+  lastLogin: new Date().toISOString(),
+  website: 'https://marie-dubois.dev',
+  linkedin: 'https://linkedin.com/in/marie-dubois',
+  github: 'https://github.com/mariedubois',
+  twitter: 'https://twitter.com/mariedubois',
+  stats: {
+    eventsAttended: 12,
+    forumPosts: 8,
+    messagesSent: 156,
+  },
 };
 
 export const clubs: Club[] = [
@@ -427,7 +463,7 @@ export const forumPosts: ForumPost[] = [
     authorName: 'Thomas Bernard',
     authorAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Thomas',
     title: 'Planning des workshops du mois d\'avril',
-    body: 'Voici la proposition de planning pour les workshops d\'avril. Le prÃ©sident peut valider ou ajuster les crÃ©neaux avant publication finale.',
+    body: 'Voici la proposition de planning pour les workshops d\'avril. Le président peut valider ou ajuster les créneaux avant publication finale.',
     tags: ['Workshop', 'Planning', 'Organisation'],
     reactions: 9,
     commentCount: 4,
@@ -444,6 +480,8 @@ export const notifications: Notification[] = [
     timestamp: '2026-03-24T08:00:00',
     read: false,
     icon: 'calendar',
+    // Added missing fields
+    link: '/events/1',
   },
   {
     id: '2',
@@ -462,6 +500,12 @@ export const notifications: Notification[] = [
     timestamp: '2026-03-22T11:45:00',
     read: true,
     icon: 'message-circle',
+    // Added missing fields
+    link: '/forum/post/1',
+    sender: {
+      name: 'Thomas Bernard',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Thomas',
+    },
   },
 ];
 
@@ -478,6 +522,10 @@ export const members: User[] = [
     joinDate: '2024-09-15',
     status: 'active',
     online: true,
+    // Added missing fields
+    roleLabel: 'Président',
+    bio: 'Présidente du Club Robotique, passionnée par l\'IA et l\'embarqué.',
+    stats: { eventsAttended: 15, forumPosts: 12, messagesSent: 234 },
   },
   {
     id: '2',
@@ -491,6 +539,10 @@ export const members: User[] = [
     joinDate: '2024-09-20',
     status: 'active',
     online: true,
+    // Added missing fields
+    roleLabel: 'Vice-président',
+    bio: 'Vice-président, spécialiste en mécanique et électronique.',
+    stats: { eventsAttended: 10, forumPosts: 6, messagesSent: 98 },
   },
   {
     id: '3',
@@ -504,6 +556,9 @@ export const members: User[] = [
     joinDate: '2024-10-05',
     status: 'active',
     online: false,
+    // Added missing fields
+    roleLabel: 'Staff',
+    stats: { eventsAttended: 5, forumPosts: 3, messagesSent: 45 },
   },
   {
     id: '4',
@@ -517,6 +572,9 @@ export const members: User[] = [
     joinDate: '2024-11-12',
     status: 'active',
     online: true,
+    // Added missing fields
+    roleLabel: 'Membre',
+    stats: { eventsAttended: 3, forumPosts: 1, messagesSent: 23 },
   },
   {
     id: '5',
@@ -530,6 +588,9 @@ export const members: User[] = [
     joinDate: '2025-01-08',
     status: 'pending',
     online: false,
+    // Added missing fields
+    roleLabel: 'Membre',
+    stats: { eventsAttended: 0, forumPosts: 0, messagesSent: 0 },
   },
 ];
 
@@ -543,7 +604,7 @@ export const membershipRequests: MembershipRequest[] = [
     clubId: '1',
     clubName: 'Club Robotique',
     requestedAt: '2026-03-29T09:15:00',
-    motivation: 'Je souhaite contribuer au pÃ´le prototypage et participer aux workshops Arduino.',
+    motivation: 'Je souhaite contribuer au pôle prototypage et participer aux workshops Arduino.',
     skills: ['Arduino', 'Capteurs', 'Prototypage'],
   },
   {
@@ -555,8 +616,8 @@ export const membershipRequests: MembershipRequest[] = [
     clubId: '1',
     clubName: 'Club Robotique',
     requestedAt: '2026-03-30T15:40:00',
-    motivation: 'J\'ai dÃ©jÃ  gÃ©rÃ© des activitÃ©s associatives et je peux aider en communication et organisation.',
-    skills: ['Gestion d\'Ã©quipe', 'Communication', 'Organisation'],
+    motivation: 'J\'ai déjà géré des activités associatives et je peux aider en communication et organisation.',
+    skills: ['Gestion d\'équipe', 'Communication', 'Organisation'],
   },
   {
     id: 'mr3',
@@ -566,7 +627,7 @@ export const membershipRequests: MembershipRequest[] = [
     clubId: '1',
     clubName: 'Club Robotique',
     requestedAt: '2026-03-31T11:05:00',
-    motivation: 'Je veux rejoindre le club pour apprendre et participer aux compÃ©titions.',
+    motivation: 'Je veux rejoindre le club pour apprendre et participer aux compétitions.',
     skills: ['Python', 'Vision par ordinateur'],
   },
 ];
@@ -580,7 +641,7 @@ export const channelJoinRequests: ChannelJoinRequest[] = [
     requesterName: 'Lucas Martin',
     requesterRole: 'staff',
     requestedAt: '2026-03-30T10:20:00',
-    reason: 'Je dois suivre la planification interne des ateliers et des rÃ©unions staff.',
+    reason: 'Je dois suivre la planification interne des ateliers et des réunions staff.',
     status: 'pending',
   },
   {
@@ -591,7 +652,7 @@ export const channelJoinRequests: ChannelJoinRequest[] = [
     requesterName: 'Thomas Bernard',
     requesterRole: 'vicepresident',
     requestedAt: '2026-03-28T13:00:00',
-    reason: 'Participation Ã  la coordination des activitÃ©s inter-clubs.',
+    reason: 'Participation à la coordination des activités inter-clubs.',
     status: 'approved',
   },
 ];
@@ -600,7 +661,7 @@ export const clubForums: ClubForum[] = [
   {
     id: '1',
     clubId: '1',
-    name: 'Forum gÃ©nÃ©ral robotique',
+    name: 'Forum général robotique',
     description: 'Espace principal pour les discussions, ressources et annonces du club.',
     visibility: 'club',
     memberCount: 45,
@@ -610,7 +671,7 @@ export const clubForums: ClubForum[] = [
     id: '2',
     clubId: '1',
     name: 'Forum organisation staff',
-    description: 'Discussions de coordination sur les membres, ateliers et Ã©vÃ©nements du bureau.',
+    description: 'Discussions de coordination sur les membres, ateliers et événements du bureau.',
     visibility: 'staff',
     memberCount: 6,
     postCount: 7,

@@ -1,77 +1,30 @@
-// components/Settings.tsx
+// pages/member/Settings.tsx
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router";
-import { Sidebar } from "./Sidebar";
-import { TopNav } from "./TopNav";
-import { Card } from "./ui/card";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Switch } from "./ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { useNavigate } from "react-router";
+import { Sidebar } from "../../components/Sidebar";
+import { TopNav } from "../../components/TopNav";
+import { currentUser } from "../../data/mockData";
+import { Card } from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { Switch } from "../../components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { 
-  Bell, Lock, Shield, User, Mail, Smartphone, Globe, Moon, Sun,
-  Save, Key, Eye, EyeOff, Volume2, VolumeX, Database, Trash2,
-  Download, AlertTriangle, CheckCircle, RefreshCw, Users, Calendar,
-  MessageSquare, FileText, Building
+  Bell, Lock, Shield, User, Mail, Globe, Moon, Sun, Save, Key, 
+  Eye, EyeOff, Volume2, VolumeX, Database, Trash2, Download, 
+  AlertTriangle, RefreshCw, CheckCircle
 } from "lucide-react";
 import { toast } from "sonner";
 
-interface SettingsData {
-  notifications: {
-    email: boolean;
-    push: boolean;
-    desktop: boolean;
-    sound: boolean;
-    eventReminders: boolean;
-    messageAlerts: boolean;
-    weeklyDigest: boolean;
-  };
-  appearance: {
-    theme: 'light' | 'dark' | 'system';
-    compactMode: boolean;
-    fontSize: 'small' | 'medium' | 'large';
-    animations: boolean;
-  };
-  privacy: {
-    profileVisibility: 'public' | 'clubs_only' | 'private';
-    showEmail: boolean;
-    showPhone: boolean;
-    showActivity: boolean;
-    allowMessagesFrom: 'everyone' | 'clubs_only' | 'none';
-  };
-  security: {
-    twoFactorAuth: boolean;
-    sessionTimeout: number;
-    loginAlerts: boolean;
-  };
-}
-
-interface UserInfo {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: 'admin' | 'staff' | 'president' | 'member';
-  roleLabel: string;
-  clubName?: string;
-}
-
-const mockUser: UserInfo = {
-  id: "1",
-  firstName: "Marie",
-  lastName: "Dubois",
-  email: "marie.dubois@university.edu",
-  role: "member",
-  roleLabel: "Membre",
-  clubName: "Club Robotique"
-};
-
-export default function Settings() {
-  const { id, role } = useParams<{ id: string; role?: string }>();
+export default function MemberSettings() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<UserInfo>(mockUser);
-  const [settings, setSettings] = useState<SettingsData>({
+  const [user, setUser] = useState(currentUser);
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({ current: "", new: "", confirm: "" });
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState("");
+  const [settings, setSettings] = useState({
     notifications: {
       email: true,
       push: true,
@@ -82,17 +35,17 @@ export default function Settings() {
       weeklyDigest: false
     },
     appearance: {
-      theme: 'light',
+      theme: 'light' as 'light' | 'dark' | 'system',
       compactMode: false,
-      fontSize: 'medium',
+      fontSize: 'medium' as 'small' | 'medium' | 'large',
       animations: true
     },
     privacy: {
-      profileVisibility: 'public',
+      profileVisibility: 'public' as 'public' | 'clubs_only' | 'private',
       showEmail: true,
       showPhone: false,
       showActivity: true,
-      allowMessagesFrom: 'everyone'
+      allowMessagesFrom: 'everyone' as 'everyone' | 'clubs_only' | 'none'
     },
     security: {
       twoFactorAuth: false,
@@ -100,26 +53,15 @@ export default function Settings() {
       loginAlerts: true
     }
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [passwordForm, setPasswordForm] = useState({ current: "", new: "", confirm: "" });
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState("");
 
   useEffect(() => {
-    if (role === "admin") setUser({ ...mockUser, role: "admin", roleLabel: "Administrateur" });
-    else if (role === "president") setUser({ ...mockUser, role: "president", roleLabel: "Président" });
-    else if (role === "staff") setUser({ ...mockUser, role: "staff", roleLabel: "Staff" });
-    else setUser({ ...mockUser, role: "member", roleLabel: "Membre" });
-  }, [role]);
-
-  const getBasePath = () => {
-    if (user.role === 'admin') return '/admin/dashboard';
-    if (user.role === 'president') return '/president/dashboard';
-    if (user.role === 'staff') return '/staff/dashboard';
-    return '/member/dashboard';
-  };
-
-  const getSidebarRole = () => user.role;
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {}
+    }
+  }, []);
 
   const handleSaveNotifications = () => {
     toast.success("Préférences de notifications enregistrées");
@@ -171,8 +113,9 @@ export default function Settings() {
     }
     setIsDeleting(true);
     setTimeout(() => {
-      toast.error("Compte supprimé");
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      toast.error("Compte supprimé");
       navigate("/login");
     }, 2000);
   };
@@ -189,20 +132,22 @@ export default function Settings() {
 
   return (
     <div className="flex h-screen">
-      <Sidebar role={getSidebarRole()} />
+      <Sidebar role="member" />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopNav 
           userId={user.id}
           userName={`${user.firstName} ${user.lastName}`}
+          userAvatar={user.avatar}
           userRole={user.roleLabel}
-          userRoleType={user.role}
+          userRoleType="member"
+          notificationCount={3}
         />
 
         <main className="flex-1 overflow-y-auto bg-[#F7F8FC] p-6">
           <div className="max-w-4xl mx-auto">
             <button
-              onClick={() => navigate(getBasePath())}
+              onClick={() => navigate("/member/dashboard")}
               className="flex items-center gap-2 text-gray-600 hover:text-[#0EA8A8] transition-colors mb-6"
             >
               ← Retour
@@ -223,7 +168,6 @@ export default function Settings() {
                 <TabsTrigger value="data"><Database className="w-4 h-4 mr-2" />Données</TabsTrigger>
               </TabsList>
 
-              {/* Notifications Tab */}
               <TabsContent value="notifications">
                 <Card className="p-6">
                   <h2 className="text-xl font-bold text-[#1B2A4A] mb-4">Préférences de notifications</h2>
@@ -242,7 +186,6 @@ export default function Settings() {
                 </Card>
               </TabsContent>
 
-              {/* Appearance Tab */}
               <TabsContent value="appearance">
                 <Card className="p-6">
                   <h2 className="text-xl font-bold text-[#1B2A4A] mb-4">Préférences d'affichage</h2>
@@ -270,7 +213,6 @@ export default function Settings() {
                 </Card>
               </TabsContent>
 
-              {/* Privacy Tab */}
               <TabsContent value="privacy">
                 <Card className="p-6">
                   <h2 className="text-xl font-bold text-[#1B2A4A] mb-4">Confidentialité</h2>
@@ -299,7 +241,6 @@ export default function Settings() {
                 </Card>
               </TabsContent>
 
-              {/* Security Tab */}
               <TabsContent value="security">
                 <Card className="p-6">
                   <h2 className="text-xl font-bold text-[#1B2A4A] mb-4">Paramètres de sécurité</h2>
@@ -319,7 +260,6 @@ export default function Settings() {
                 </Card>
               </TabsContent>
 
-              {/* Password Tab */}
               <TabsContent value="password">
                 <Card className="p-6">
                   <h2 className="text-xl font-bold text-[#1B2A4A] mb-4">Changer le mot de passe</h2>
@@ -340,7 +280,6 @@ export default function Settings() {
                 </Card>
               </TabsContent>
 
-              {/* Data Tab */}
               <TabsContent value="data">
                 <Card className="p-6">
                   <h2 className="text-xl font-bold text-[#1B2A4A] mb-4">Données et préférences</h2>

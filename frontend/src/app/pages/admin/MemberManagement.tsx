@@ -1,4 +1,4 @@
-// pages/admin/MemberManagement.tsx (version complète avec noms de clubs visibles)
+// pages/admin/MemberManagement.tsx (version modifiée - admin ne gère que les staffs)
 import { Sidebar } from "../../components/Sidebar";
 import { TopNav } from "../../components/TopNav";
 import { Card } from "../../components/ui/card";
@@ -22,11 +22,13 @@ import {
   UserPlus,
   ChevronRight,
   Grid3x3,
-  List
+  List,
+  AlertCircle
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../../components/ui/dialog";
+import { Alert, AlertDescription } from "../../components/ui/alert";
 
 interface Member {
   id: string;
@@ -174,9 +176,12 @@ const roleOptions = [
   { value: "vice_president", label: "Vice-président", color: "bg-indigo-100 text-indigo-800", icon: Shield },
   { value: "secretary", label: "Secrétaire", color: "bg-blue-100 text-blue-800", icon: User },
   { value: "treasurer", label: "Trésorier", color: "bg-green-100 text-green-800", icon: User },
-  { value: "staff", label: "Staff", color: "bg-orange-100 text-orange-800", icon: Shield },
-  { value: "member", label: "Membre", color: "bg-gray-100 text-gray-800", icon: User }
+  { value: "staff", label: "Staff", color: "bg-orange-100 text-orange-800", icon: Shield }
+  // Note: Le rôle "member" a été retiré car l'admin ne peut pas gérer les membres simples
 ];
+
+// Rôles staff (ceux que l'admin peut gérer)
+const staffRoles = ['president', 'vice_president', 'secretary', 'treasurer', 'staff'];
 
 export default function AdminMemberManagement() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -197,16 +202,19 @@ export default function AdminMemberManagement() {
     fullName: "",
     email: "",
     phone: "",
-    role: "member",
+    role: "staff",
     clubId: "",
     status: "active"
   });
 
-  // Get unique clubs for filter
-  const uniqueClubs = [...new Set(members.map(m => m.clubName))];
+  // Filtrer pour n'afficher que les membres du staff (pas les membres simples)
+  const staffOnlyMembers = members.filter(member => staffRoles.includes(member.role));
 
-  // Filter members
-  const filterMembers = (membersList: Member[]) => {
+  // Get unique clubs for filter (uniquement des clubs qui ont des staffs)
+  const uniqueClubs = [...new Set(staffOnlyMembers.map(m => m.clubName))];
+
+  // Filter staff members
+  const filterStaffMembers = (membersList: Member[]) => {
     return membersList.filter(member => {
       const matchesSearch = searchQuery === "" || 
         member.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -221,7 +229,7 @@ export default function AdminMemberManagement() {
     });
   };
 
-  const filteredMembers = filterMembers(members);
+  const filteredMembers = filterStaffMembers(staffOnlyMembers);
   
   // Group members by club
   const groupMembersByClub = () => {
@@ -240,8 +248,8 @@ export default function AdminMemberManagement() {
 
   const membersByClub = groupMembersByClub();
   
-  const staffMembers = filteredMembers.filter(m => m.role !== 'member');
-  const simpleMembers = filteredMembers.filter(m => m.role === 'member');
+  const staffMembers = filteredMembers; // Tous sont des staffs
+  const simpleMembers = []; // Aucun membre simple visible
 
   const toggleClubCollapse = (clubName: string) => {
     const newCollapsed = new Set(collapsedClubs);
@@ -288,7 +296,7 @@ export default function AdminMemberManagement() {
       fullName: "",
       email: "",
       phone: "",
-      role: "member",
+      role: "staff",
       clubId: "",
       status: "active"
     });
@@ -296,6 +304,11 @@ export default function AdminMemberManagement() {
   };
 
   const handleEditMember = (member: Member) => {
+    // Vérifier que le membre est bien un staff (pas un membre simple)
+    if (!staffRoles.includes(member.role)) {
+      toast.error("Vous ne pouvez pas modifier un membre simple");
+      return;
+    }
     setSelectedMember(member);
     setFormData({
       fullName: member.fullName,
@@ -309,6 +322,11 @@ export default function AdminMemberManagement() {
   };
 
   const handleDeleteMember = (member: Member) => {
+    // Vérifier que le membre est bien un staff (pas un membre simple)
+    if (!staffRoles.includes(member.role)) {
+      toast.error("Vous ne pouvez pas supprimer un membre simple");
+      return;
+    }
     setSelectedMember(member);
     setIsDeleteModalOpen(true);
   };
@@ -319,6 +337,9 @@ export default function AdminMemberManagement() {
       return;
     }
 
+    // Vérifier que le rôle n'est pas "member"
+    
+
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
       
@@ -326,6 +347,11 @@ export default function AdminMemberManagement() {
       const roleOption = roleOptions.find(r => r.value === formData.role);
       
       if (isEditModalOpen && selectedMember) {
+        // Vérifier que le membre modifié reste un staff
+        if (formData.role === "member") {
+          toast.error("Vous ne pouvez pas transformer un staff en membre simple");
+          return;
+        }
         // Update existing member
         setMembers(members.map(m => 
           m.id === selectedMember.id 
@@ -335,7 +361,7 @@ export default function AdminMemberManagement() {
                 email: formData.email,
                 phone: formData.phone,
                 role: formData.role as any,
-                roleLabel: roleOption?.label || "Membre",
+                roleLabel: roleOption?.label || "Staff",
                 clubId: formData.clubId,
                 clubName: club?.name || "",
                 status: formData.status as any
@@ -345,21 +371,21 @@ export default function AdminMemberManagement() {
         toast.success("Membre modifié avec succès");
         setIsEditModalOpen(false);
       } else {
-        // Add new member
+        // Add new staff member
         const newMember: Member = {
           id: Date.now().toString(),
           fullName: formData.fullName,
           email: formData.email,
           phone: formData.phone,
           role: formData.role as any,
-          roleLabel: roleOption?.label || "Membre",
+          roleLabel: roleOption?.label || "Staff",
           clubId: formData.clubId,
           clubName: club?.name || "",
           joinDate: new Date().toISOString().split('T')[0],
           status: formData.status as any
         };
         setMembers([...members, newMember]);
-        toast.success("Membre ajouté avec succès");
+        toast.success("Membre staff ajouté avec succès");
         setIsAddModalOpen(false);
       }
     } catch (error) {
@@ -369,6 +395,13 @@ export default function AdminMemberManagement() {
 
   const confirmDelete = async () => {
     if (selectedMember) {
+      // Vérification supplémentaire avant suppression
+      if (!staffRoles.includes(selectedMember.role)) {
+        toast.error("Vous ne pouvez pas supprimer un membre simple");
+        setIsDeleteModalOpen(false);
+        return;
+      }
+      
       try {
         await new Promise(resolve => setTimeout(resolve, 500));
         setMembers(members.filter(m => m.id !== selectedMember.id));
@@ -437,9 +470,8 @@ export default function AdminMemberManagement() {
         const isCollapsed = collapsedClubs.has(clubName);
         const clubColor = getClubColor(clubName);
         
-        // Compter les membres par rôle
-        const staffCount = clubMembers.filter(m => m.role !== 'member').length;
-        const membersCount = clubMembers.filter(m => m.role === 'member').length;
+        // Compter les membres par rôle (tous sont des staffs ici)
+        const staffCount = clubMembers.length;
         
         return (
           <Card key={clubName} className="overflow-hidden border-0 shadow-md">
@@ -460,21 +492,9 @@ export default function AdminMemberManagement() {
                     <h2 className="text-2xl font-bold text-white">{clubName}</h2>
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-sm text-white/90 flex items-center gap-1">
-                        <Users className="w-3 h-3" />
-                        {clubMembers.length} membre{clubMembers.length > 1 ? 's' : ''}
+                        <Shield className="w-3 h-3" />
+                        {staffCount} staff{staffCount > 1 ? 's' : ''}
                       </span>
-                      {staffCount > 0 && (
-                        <span className="text-sm text-white/90 flex items-center gap-1">
-                          <Shield className="w-3 h-3" />
-                          {staffCount} staff
-                        </span>
-                      )}
-                      {membersCount > 0 && (
-                        <span className="text-sm text-white/90 flex items-center gap-1">
-                          <User className="w-3 h-3" />
-                          {membersCount} membre{membersCount > 1 ? 's' : ''}
-                        </span>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -494,11 +514,11 @@ export default function AdminMemberManagement() {
               </div>
             </div>
             
-            {/* Liste des membres */}
+            {/* Liste des membres staff */}
             {!isCollapsed && (
               <div className="p-4 bg-gray-50">
                 {clubMembers.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">Aucun membre dans ce club</p>
+                  <p className="text-center text-gray-500 py-8">Aucun staff dans ce club</p>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {clubMembers.map((member) => (
@@ -514,8 +534,8 @@ export default function AdminMemberManagement() {
       
       {Object.keys(membersByClub).length === 0 && (
         <Card className="p-12 text-center">
-          <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500">Aucun membre trouvé dans les clubs</p>
+          <Shield className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500">Aucun membre du staff trouvé dans les clubs</p>
         </Card>
       )}
     </div>
@@ -535,19 +555,19 @@ export default function AdminMemberManagement() {
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopNav 
-  userId="admin_1"
-  userName="Admin User"
-  userRole="Administrateur"
-  userRoleType="admin"
-  notificationCount={5}
-/>
+          userId="1"
+          userName="Admin User"
+          userRole="Administrateur"
+          userRoleType="admin"
+          notificationCount={5}
+        />
 
         <main className="flex-1 overflow-y-auto bg-[#F7F8FC] p-6">
           <div className="mb-6">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-[#1B2A4A] mb-2">Gestion des membres</h1>
-                <p className="text-gray-600">Gérer tous les membres de tous les clubs (staff et membres simples)</p>
+                <h1 className="text-3xl font-bold text-[#1B2A4A] mb-2">Gestion des staffs</h1>
+                <p className="text-gray-600">Gérer les membres du staff de tous les clubs (présidents, vice-présidents, secrétaires, trésoriers, staff)</p>
               </div>
               <div className="flex gap-2">
                 <div className="flex rounded-lg border border-gray-200 bg-white p-1">
@@ -575,10 +595,13 @@ export default function AdminMemberManagement() {
                   className="bg-[#0EA8A8] hover:bg-[#0c8e8e]"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Ajouter un membre
+                  Ajouter un staff
                 </Button>
               </div>
             </div>
+
+           
+            
 
             {/* Search and Filters */}
             <div className="mt-4 space-y-3">
@@ -674,54 +697,24 @@ export default function AdminMemberManagement() {
           <Tabs defaultValue="all" className="space-y-4">
             <TabsList className="bg-white">
               <TabsTrigger value="all">
-                <Users className="w-4 h-4 mr-2" />
-                Tous ({filteredMembers.length})
-              </TabsTrigger>
-              <TabsTrigger value="staff">
                 <Shield className="w-4 h-4 mr-2" />
-                Staff ({staffMembers.length})
-              </TabsTrigger>
-              <TabsTrigger value="members">
-                <User className="w-4 h-4 mr-2" />
-                Membres ({simpleMembers.length})
+                Tous les staffs ({filteredMembers.length})
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="all" className="space-y-4">
               {filteredMembers.length === 0 ? (
                 <Card className="p-12 text-center">
-                  <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">Aucun membre trouvé</p>
+                  <Shield className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">Aucun membre du staff trouvé</p>
                   <Button 
                     variant="link" 
                     onClick={handleAddMember}
                     className="mt-2 text-[#0EA8A8]"
                   >
                     <UserPlus className="w-4 h-4 mr-2" />
-                    Ajouter un membre
+                    Ajouter un staff
                   </Button>
-                </Card>
-              ) : (
-                viewMode === 'grouped' ? <GroupedView /> : <GridView />
-              )}
-            </TabsContent>
-
-            <TabsContent value="staff" className="space-y-4">
-              {staffMembers.length === 0 ? (
-                <Card className="p-12 text-center">
-                  <Shield className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">Aucun membre du staff trouvé</p>
-                </Card>
-              ) : (
-                viewMode === 'grouped' ? <GroupedView /> : <GridView />
-              )}
-            </TabsContent>
-
-            <TabsContent value="members" className="space-y-4">
-              {simpleMembers.length === 0 ? (
-                <Card className="p-12 text-center">
-                  <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">Aucun membre simple trouvé</p>
                 </Card>
               ) : (
                 viewMode === 'grouped' ? <GroupedView /> : <GridView />
@@ -739,10 +732,10 @@ export default function AdminMemberManagement() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {isEditModalOpen ? "Modifier le membre" : "Ajouter un membre"}
+              {isEditModalOpen ? "Modifier le staff" : "Ajouter un staff"}
             </DialogTitle>
             <DialogDescription>
-              {isEditModalOpen ? "Modifiez les informations du membre" : "Remplissez les informations pour ajouter un nouveau membre"}
+              {isEditModalOpen ? "Modifiez les informations du membre du staff" : "Remplissez les informations pour ajouter un nouveau membre du staff"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -794,7 +787,7 @@ export default function AdminMemberManagement() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Rôle
+                Rôle <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.role}
@@ -805,6 +798,9 @@ export default function AdminMemberManagement() {
                   <option key={role.value} value={role.value}>{role.label}</option>
                 ))}
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Note: L'administrateur ne peut pas créer de membres simples.
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

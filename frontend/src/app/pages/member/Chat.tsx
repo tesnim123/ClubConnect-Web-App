@@ -10,68 +10,36 @@ import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar"
 import { Badge } from "../../components/ui/badge";
 import { ScrollArea } from "../../components/ui/scroll-area";
 import { 
-  Hash, 
-  Lock, 
-  Users, 
-  Send, 
-  Paperclip, 
-  Smile, 
-  File, 
-  Search,
-  MoreVertical,
-  Pin,
-  Bell,
-  BellOff,
-  Image,
-  Mic,
-  Video,
-  Trash2,
-  Edit,
-  Reply,
-  Copy,
-  Check,
-  X,
-  Plus,
-  ChevronDown,
-  UserPlus,
-  Settings,
-  Phone,
-  VideoIcon,
-  Info,
-  MessageSquare
+  Hash, Lock, Users, Send, Paperclip, Smile, File, Search,
+  MoreVertical, Bell, BellOff, Image, X, Check, 
+  Reply, Copy, Trash2, Edit, Phone, Video, Info
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
 import EmojiPicker from "emoji-picker-react";
 
-// Importer le type Message depuis mockData ou le définir ici
-import { Message as MockMessage } from "../../data/mockData";
-
-// Définir les types locaux qui correspondent exactement à ceux de mockData
-interface Attachment {
+interface Message {
   id: string;
-  name: string;
-  size: string;
-  type: string;
-  url: string;
-}
-
-interface Reaction {
-  emoji: string;
-  count: number;
-  users?: string[]; // Rendre optionnel pour correspondre à mockData
-}
-
-// Étendre le type Message de mockData
-interface Message extends MockMessage {
-  reactions?: Reaction[];
+  channelId: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar?: string;
+  content: string;
+  timestamp: string;
+  attachments?: { id: string; name: string; size: string; type: string; url: string }[];
+  reactions?: { emoji: string; count: number }[];
   isEdited?: boolean;
   replyTo?: Message;
 }
 
 export default function MemberChat() {
-  const [selectedChannel, setSelectedChannel] = useState(channels[0]);
+  const [user, setUser] = useState(currentUser);
+  const [selectedChannel, setSelectedChannel] = useState(() => {
+    // Sélectionner le premier canal public par défaut
+    const firstPublicChannel = channels.find(channel => !channel.isPrivate && channel.members.includes(currentUser.id));
+    return firstPublicChannel || channels[0];
+  });
   const [messageInput, setMessageInput] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
@@ -80,25 +48,45 @@ export default function MemberChat() {
   const [showMemberList, setShowMemberList] = useState(true);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
-  const [showChannelInfo, setShowChannelInfo] = useState(false);
-  const [isPinned, setIsPinned] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const memberData = {
-    id: "member_1",
-    fullName: `${currentUser.firstName} ${currentUser.lastName}`,
-    role: "member",
-    roleLabel: "Membre",
-    avatar: currentUser.avatar
-  };
 
-  // Typer correctement les messages
+  useEffect(() => {
+    const loadUser = () => {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (e) {}
+      }
+    };
+    
+    loadUser();
+    
+    const handleUserUpdated = () => {
+      loadUser();
+    };
+    
+    window.addEventListener('userUpdated', handleUserUpdated);
+    return () => window.removeEventListener('userUpdated', handleUserUpdated);
+  }, []);
+
+  // Filtrer uniquement les canaux publics
+  const publicChannels = channels.filter(channel => 
+    !channel.isPrivate && channel.members.includes(user.id)
+  );
+
+  // Filtrer les canaux publics avec recherche
+  const filteredChannels = publicChannels.filter(channel =>
+    channel.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const channelMessages = messages.filter(m => m.channelId === selectedChannel.id) as Message[];
+  const channelMembers = members.filter(m => selectedChannel.members.includes(m.id));
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [channelMessages]);
@@ -109,10 +97,9 @@ export default function MemberChat() {
     setIsUploading(true);
     
     try {
-      // Simuler l'upload des fichiers
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      const newAttachments: Attachment[] = attachments.map((file, index) => ({
+      const newAttachments = attachments.map((file, index) => ({
         id: Date.now().toString() + index,
         name: file.name,
         size: formatFileSize(file.size),
@@ -190,16 +177,6 @@ export default function MemberChat() {
     toast.success("Message copié");
   };
 
-  const handlePinChannel = () => {
-    setIsPinned(!isPinned);
-    toast.success(isPinned ? "Canal désépinglé" : "Canal épinglé");
-  };
-
-  const handleMuteChannel = () => {
-    setIsMuted(!isMuted);
-    toast.success(isMuted ? "Notifications activées" : "Notifications désactivées");
-  };
-
   const formatTimestamp = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -216,14 +193,16 @@ export default function MemberChat() {
   };
 
   const MessageBubble = ({ message }: { message: Message }) => {
-    const isOwnMessage = message.senderId === currentUser.id;
+    const isOwnMessage = message.senderId === user.id;
     
     return (
       <div className={`flex items-start gap-3 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
         {!isOwnMessage && (
           <Avatar className="w-8 h-8">
             <AvatarImage src={message.senderAvatar} />
-            <AvatarFallback>{message.senderName?.[0] || 'U'}</AvatarFallback>
+            <AvatarFallback className="bg-[#0EA8A8] text-white text-xs">
+              {message.senderName?.[0] || 'U'}
+            </AvatarFallback>
           </Avatar>
         )}
         <div className={`flex-1 max-w-[70%] ${isOwnMessage ? 'items-end' : ''}`}>
@@ -266,14 +245,12 @@ export default function MemberChat() {
               )}
             </div>
             
-            {/* Message Actions */}
             <div className={`absolute top-0 ${isOwnMessage ? 'left-0 -translate-x-full' : 'right-0 translate-x-full'} opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex gap-1`}>
               <Button 
                 variant="ghost" 
                 size="sm" 
                 className="h-7 w-7 p-0 bg-white shadow"
                 onClick={() => handleReaction(message.id, '👍')}
-                title="Réagir"
               >
                 <Smile className="w-3 h-3" />
               </Button>
@@ -282,7 +259,6 @@ export default function MemberChat() {
                 size="sm" 
                 className="h-7 w-7 p-0 bg-white shadow"
                 onClick={() => handleReply(message)}
-                title="Répondre"
               >
                 <Reply className="w-3 h-3" />
               </Button>
@@ -292,7 +268,6 @@ export default function MemberChat() {
                   size="sm" 
                   className="h-7 w-7 p-0 bg-white shadow"
                   onClick={() => handleEditMessage(message)}
-                  title="Modifier"
                 >
                   <Edit className="w-3 h-3" />
                 </Button>
@@ -302,7 +277,6 @@ export default function MemberChat() {
                 size="sm" 
                 className="h-7 w-7 p-0 bg-white shadow"
                 onClick={() => handleCopyMessage(message.content)}
-                title="Copier"
               >
                 <Copy className="w-3 h-3" />
               </Button>
@@ -311,14 +285,12 @@ export default function MemberChat() {
                 size="sm" 
                 className="h-7 w-7 p-0 bg-white shadow text-red-500 hover:text-red-600"
                 onClick={() => handleDeleteMessage(message.id)}
-                title="Supprimer"
               >
                 <Trash2 className="w-3 h-3" />
               </Button>
             </div>
           </div>
           
-          {/* Reactions */}
           {message.reactions && message.reactions.length > 0 && (
             <div className="flex gap-1 mt-1">
               {message.reactions.map((reaction, idx) => (
@@ -338,39 +310,34 @@ export default function MemberChat() {
     );
   };
 
-  const filteredMembers = members.filter(member =>
+  const filteredMembers = channelMembers.filter(member =>
     `${member.firstName} ${member.lastName}`.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <div className="flex h-screen">
-      <Sidebar role="member"  />
+      <Sidebar role="member" />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopNav 
-          userId={memberData.id}
-          userName={currentUser.firstName}
-          userAvatar={memberData.avatar}
-          userRole={memberData.roleLabel}
-          userRoleType="member"
+          userId={user.id}
+          userName={`${user.firstName} ${user.lastName}`}
+          userAvatar={user.avatar}
+          userRole={user.roleLabel || "Membre"}
+          userRoleType={user.role}
           notificationCount={3}
-          onLogout={() => {
-            // Logique de déconnexion
-            localStorage.removeItem('token');
-            window.location.href = "/login";
-          }}
         />
 
         <div className="flex-1 flex overflow-hidden">
-          {/* Channel List */}
+          {/* Channel List - Public channels only */}
           <div className="w-64 bg-white border-r border-gray-200 flex flex-col">
             <div className="p-4 border-b">
-              <h2 className="font-bold text-[#1B2A4A]">Canaux</h2>
-              <p className="text-sm text-gray-600">{currentUser.clubName}</p>
+              <h2 className="font-bold text-[#1B2A4A]">Canaux publics</h2>
+              <p className="text-sm text-gray-600">{user.clubName}</p>
               <div className="relative mt-3">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
-                  placeholder="Rechercher..."
+                  placeholder="Rechercher un canal..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9 h-8 text-sm"
@@ -380,33 +347,33 @@ export default function MemberChat() {
             
             <ScrollArea className="flex-1">
               <div className="p-2 space-y-1">
-                {channels.filter(ch => 
-                  ch.name.toLowerCase().includes(searchQuery.toLowerCase())
-                ).map((channel) => (
-                  <button
-                    key={channel.id}
-                    onClick={() => setSelectedChannel(channel)}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors ${
-                      selectedChannel.id === channel.id
-                        ? 'bg-[#0EA8A8]/10 text-[#0EA8A8]'
-                        : 'hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    {channel.isPrivate ? (
-                      <Lock className="w-4 h-4 flex-shrink-0" />
-                    ) : (
+                {filteredChannels.length > 0 ? (
+                  filteredChannels.map((channel) => (
+                    <button
+                      key={channel.id}
+                      onClick={() => setSelectedChannel(channel)}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-colors ${
+                        selectedChannel.id === channel.id
+                          ? 'bg-[#0EA8A8]/10 text-[#0EA8A8]'
+                          : 'hover:bg-gray-100 text-gray-700'
+                      }`}
+                    >
                       <Hash className="w-4 h-4 flex-shrink-0" />
-                    )}
-                    <span className="flex-1 truncate">{channel.name}</span>
-                    {channel.unreadCount > 0 && (
-                      <Badge className="bg-[#F5A623] h-5 min-w-5 px-1">{channel.unreadCount}</Badge>
-                    )}
-                  </button>
-                ))}
+                      <span className="flex-1 truncate">{channel.name}</span>
+                      {channel.unreadCount > 0 && (
+                        <Badge className="bg-[#F5A623] h-5 min-w-5 px-1">{channel.unreadCount}</Badge>
+                      )}
+                    </button>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-gray-500 text-sm">
+                    <Hash className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p>Aucun canal public</p>
+                    <p className="text-xs mt-1">Tous les canaux sont privés</p>
+                  </div>
+                )}
               </div>
             </ScrollArea>
-            
-            
           </div>
 
           {/* Messages Area */}
@@ -414,27 +381,21 @@ export default function MemberChat() {
             {/* Channel Header */}
             <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-3">
-                {selectedChannel.isPrivate ? (
-                  <Lock className="w-5 h-5 text-gray-600" />
-                ) : (
-                  <Hash className="w-5 h-5 text-gray-600" />
-                )}
+                <Hash className="w-5 h-5 text-gray-600" />
                 <div>
                   <h3 className="font-bold text-[#1B2A4A]">{selectedChannel.name}</h3>
                   <p className="text-sm text-gray-600">{selectedChannel.description}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  onClick={handleMuteChannel}
+                  onClick={() => setIsMuted(!isMuted)}
                   className={isMuted ? 'text-[#0EA8A8]' : ''}
                 >
                   {isMuted ? <BellOff className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
                 </Button>
-                
                 <Button variant="ghost" size="sm" onClick={() => setShowMemberList(!showMemberList)}>
                   <Users className="w-4 h-4 mr-2" />
                   {selectedChannel.members.length}
@@ -442,9 +403,9 @@ export default function MemberChat() {
               </div>
             </div>
 
-            {/* Messages - CORRECTION ICI */}
-            <div className="flex-1 overflow-y-auto min-h-0">
-              <div className="p-4 space-y-4">
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto min-h-0 p-4">
+              <div className="space-y-4">
                 {channelMessages.map((message) => (
                   <MessageBubble key={message.id} message={message} />
                 ))}
@@ -512,7 +473,6 @@ export default function MemberChat() {
                   <Smile className="w-5 h-5" />
                 </Button>
                 
-                
                 <div className="relative flex-1">
                   {editingMessage && (
                     <div className="absolute -top-8 left-0 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
@@ -574,12 +534,14 @@ export default function MemberChat() {
                   {filteredMembers.map((member) => (
                     <div key={member.id} className="flex items-center gap-3 group">
                       <div className="relative">
-                        <Avatar>
+                        <Avatar className="w-8 h-8">
                           <AvatarImage src={member.avatar} />
-                          <AvatarFallback>{member.firstName[0]}</AvatarFallback>
+                          <AvatarFallback className="bg-[#0EA8A8] text-white text-xs">
+                            {member.firstName[0]}{member.lastName[0]}
+                          </AvatarFallback>
                         </Avatar>
                         {member.online && (
-                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                          <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white"></div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -588,17 +550,10 @@ export default function MemberChat() {
                         </p>
                         <p className="text-xs text-gray-500 capitalize">{member.role}</p>
                       </div>
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                          <MessageSquare className="w-3 h-3" />
-                        </Button>
-                      </div>
                     </div>
                   ))}
                 </div>
               </ScrollArea>
-              
-              
             </div>
           )}
         </div>

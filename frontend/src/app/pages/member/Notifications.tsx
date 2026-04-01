@@ -1,104 +1,24 @@
-// components/Notifications.tsx
+// pages/member/Notifications.tsx
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router";
-import { Sidebar } from "./Sidebar";
-import { TopNav } from "./TopNav";
-import { Card } from "./ui/card";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Badge } from "./ui/badge";
+import { useNavigate } from "react-router";
+import { Sidebar } from "../../components/Sidebar";
+import { TopNav } from "../../components/TopNav";
+import { currentUser, notifications as mockNotifications, Notification as NotificationType } from "../../data/mockData";
+import { Card } from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Badge } from "../../components/ui/badge";
 import { 
   Bell, CheckCircle, AlertCircle, Calendar, MessageSquare, Users,
   X, Check, Filter, Search, ChevronDown, Trash2, Eye, EyeOff,
-  RefreshCw, Clock, FileText, UserPlus, Award, Mail, Phone, Building
+  RefreshCw, Clock, FileText, UserPlus, Award, Building
 } from "lucide-react";
 import { toast } from "sonner";
 
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error' | 'event' | 'message' | 'member' | 'forum' | 'club' | 'file';
-  createdAt: string;
-  isRead: boolean;
-  link?: string;
-  sender?: { name: string; avatar?: string };
-  metadata?: Record<string, any>;
-}
-
-interface UserInfo {
-  id: string;
-  firstName: string;
-  lastName: string;
-  role: 'admin' | 'staff' | 'president' | 'member';
-  roleLabel: string;
-  clubName?: string;
-}
-
-const mockNotifications: Notification[] = [
-  {
-    id: "1",
-    title: "Nouvel événement approuvé",
-    message: "Le Hackathon 2024 a été approuvé par l'administration.",
-    type: "event",
-    createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-    isRead: false,
-    link: "/events",
-    sender: { name: "Admin" }
-  },
-  {
-    id: "2",
-    title: "Nouveau membre",
-    message: "Pierre Durand a rejoint le Club d'Informatique.",
-    type: "member",
-    createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    isRead: false,
-    link: "/members",
-    sender: { name: "Pierre Durand" }
-  },
-  {
-    id: "3",
-    title: "Message reçu",
-    message: "Nouveau message de Jean Dupont dans le canal Staff Global.",
-    type: "message",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    isRead: false,
-    link: "/communication",
-    sender: { name: "Jean Dupont" }
-  },
-  {
-    id: "4",
-    title: "Fichier partagé",
-    message: "Marie a partagé un document dans le forum.",
-    type: "file",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
-    isRead: true,
-    link: "/forum",
-    sender: { name: "Marie" }
-  },
-  {
-    id: "5",
-    title: "Rappel: Réunion des présidents",
-    message: "La réunion mensuelle aura lieu demain à 10h.",
-    type: "warning",
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-    isRead: true,
-    link: "/events"
-  }
-];
-
-export default function Notifications() {
-  const { id, role } = useParams<{ id: string; role?: string }>();
+export default function MemberNotifications() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<UserInfo>({
-    id: "1",
-    firstName: "Marie",
-    lastName: "Dubois",
-    role: "member",
-    roleLabel: "Membre",
-    clubName: "Club Robotique"
-  });
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const [user, setUser] = useState(currentUser);
+  const [notifications, setNotifications] = useState<NotificationType[]>(mockNotifications);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedType, setSelectedType] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
@@ -106,32 +26,33 @@ export default function Notifications() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (role === "admin") setUser({ ...user, role: "admin", roleLabel: "Administrateur" });
-    else if (role === "president") setUser({ ...user, role: "president", roleLabel: "Président" });
-    else if (role === "staff") setUser({ ...user, role: "staff", roleLabel: "Staff" });
-    else setUser({ ...user, role: "member", roleLabel: "Membre" });
-  }, [role]);
-
-  const getBasePath = () => {
-    if (user.role === 'admin') return '/admin/dashboard';
-    if (user.role === 'president') return '/president/dashboard';
-    if (user.role === 'staff') return '/staff/dashboard';
-    return '/member/dashboard';
-  };
-
-  const getSidebarRole = () => user.role;
-
+    const loadUser = () => {
+      const storedUser = localStorage.getItem("user");
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch (e) {}
+      }
+    };
+    
+    loadUser();
+    
+    const handleUserUpdated = () => {
+      loadUser();
+    };
+    
+    window.addEventListener('userUpdated', handleUserUpdated);
+    return () => window.removeEventListener('userUpdated', handleUserUpdated);
+  }, []);
+alert(user.avatar);
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'success': return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case 'warning': return <AlertCircle className="w-5 h-5 text-yellow-500" />;
-      case 'error': return <AlertCircle className="w-5 h-5 text-red-500" />;
       case 'event': return <Calendar className="w-5 h-5 text-blue-500" />;
       case 'message': return <MessageSquare className="w-5 h-5 text-purple-500" />;
-      case 'member': return <UserPlus className="w-5 h-5 text-[#0EA8A8]" />;
+      case 'membership': return <UserPlus className="w-5 h-5 text-[#0EA8A8]" />;
       case 'forum': return <MessageSquare className="w-5 h-5 text-indigo-500" />;
-      case 'club': return <Building className="w-5 h-5 text-orange-500" />;
       case 'file': return <FileText className="w-5 h-5 text-orange-500" />;
+      case 'approval': return <CheckCircle className="w-5 h-5 text-green-500" />;
       default: return <Bell className="w-5 h-5 text-gray-500" />;
     }
   };
@@ -140,12 +61,10 @@ export default function Notifications() {
     const badges: Record<string, { label: string; className: string }> = {
       event: { label: "Événement", className: "bg-blue-100 text-blue-800" },
       message: { label: "Message", className: "bg-purple-100 text-purple-800" },
-      member: { label: "Membre", className: "bg-[#0EA8A8]/10 text-[#0EA8A8]" },
+      membership: { label: "Membre", className: "bg-[#0EA8A8]/10 text-[#0EA8A8]" },
       forum: { label: "Forum", className: "bg-indigo-100 text-indigo-800" },
-      club: { label: "Club", className: "bg-orange-100 text-orange-800" },
       file: { label: "Fichier", className: "bg-amber-100 text-amber-800" },
-      success: { label: "Succès", className: "bg-green-100 text-green-800" },
-      warning: { label: "Attention", className: "bg-yellow-100 text-yellow-800" }
+      approval: { label: "Approbation", className: "bg-green-100 text-green-800" }
     };
     return badges[type] || { label: "Info", className: "bg-gray-100 text-gray-800" };
   };
@@ -171,29 +90,29 @@ export default function Notifications() {
     if (searchQuery) {
       filtered = filtered.filter(n =>
         n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        n.message.toLowerCase().includes(searchQuery.toLowerCase())
+        n.description.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
     if (selectedType !== "all") {
       filtered = filtered.filter(n => n.type === selectedType);
     }
     if (dateRange.start) {
-      filtered = filtered.filter(n => new Date(n.createdAt) >= new Date(dateRange.start));
+      filtered = filtered.filter(n => new Date(n.timestamp) >= new Date(dateRange.start));
     }
     if (dateRange.end) {
-      filtered = filtered.filter(n => new Date(n.createdAt) <= new Date(dateRange.end));
+      filtered = filtered.filter(n => new Date(n.timestamp) <= new Date(dateRange.end));
     }
-    filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     return filtered;
   };
 
   const markAsRead = (id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
     toast.success("Notification marquée comme lue");
   };
 
   const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     toast.success("Toutes les notifications marquées comme lues");
   };
 
@@ -204,7 +123,7 @@ export default function Notifications() {
 
   const deleteAllRead = () => {
     if (window.confirm("Supprimer toutes les notifications lues ?")) {
-      setNotifications(prev => prev.filter(n => !n.isRead));
+      setNotifications(prev => prev.filter(n => !n.read));
       toast.success("Notifications lues supprimées");
     }
   };
@@ -218,26 +137,26 @@ export default function Notifications() {
   };
 
   const filteredNotifications = filterNotifications();
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const notificationTypes = [
     { value: "all", label: "Tous", count: filteredNotifications.length },
     { value: "event", label: "Événements", count: notifications.filter(n => n.type === "event").length },
     { value: "message", label: "Messages", count: notifications.filter(n => n.type === "message").length },
-    { value: "member", label: "Membres", count: notifications.filter(n => n.type === "member").length },
-    { value: "forum", label: "Forum", count: notifications.filter(n => n.type === "forum").length },
-    { value: "file", label: "Fichiers", count: notifications.filter(n => n.type === "file").length }
+    { value: "membership", label: "Membres", count: notifications.filter(n => n.type === "membership").length },
+    { value: "forum", label: "Forum", count: notifications.filter(n => n.type === "forum").length }
   ];
 
   return (
     <div className="flex h-screen">
-      <Sidebar role={getSidebarRole()} />
+      <Sidebar role="member" />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopNav 
           userId={user.id}
           userName={`${user.firstName} ${user.lastName}`}
-          userRole={user.roleLabel}
+          userAvatar={user.avatar}
+          userRole={user.roleLabel || "Membre"}
           userRoleType={user.role}
           notificationCount={unreadCount}
         />
@@ -245,7 +164,7 @@ export default function Notifications() {
         <main className="flex-1 overflow-y-auto bg-[#F7F8FC] p-6">
           <div className="max-w-5xl mx-auto">
             <button
-              onClick={() => navigate(getBasePath())}
+              onClick={() => navigate("/member/dashboard")}
               className="flex items-center gap-2 text-gray-600 hover:text-[#0EA8A8] transition-colors mb-6"
             >
               ← Retour
@@ -268,14 +187,17 @@ export default function Notifications() {
                       Tout marquer comme lu
                     </Button>
                   )}
-                  <Button variant="outline" onClick={deleteAllRead} className="gap-2 text-red-600 border-red-400">
+     <Button
+                    onClick={deleteAllRead}
+                    variant="outline"
+                    className="gap-2 text-red-600 border-red-500 hover:bg-red-700"
+                  >
                     <Trash2 className="w-4 h-4" />
                     Supprimer les lues
                   </Button>
                 </div>
               </div>
 
-              {/* Search and Filters */}
               <div className="mt-4 space-y-3">
                 <div className="flex gap-3">
                   <div className="flex-1 relative">
@@ -316,7 +238,6 @@ export default function Notifications() {
               </div>
             </div>
 
-            {/* Type Tabs */}
             <div className="mb-6">
               <div className="flex gap-2 flex-wrap">
                 {notificationTypes.map((type) => (
@@ -338,7 +259,6 @@ export default function Notifications() {
               </div>
             </div>
 
-            {/* Notifications List */}
             {filteredNotifications.length === 0 ? (
               <Card className="p-12 text-center">
                 <Bell className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -353,11 +273,11 @@ export default function Notifications() {
                     <Card
                       key={notification.id}
                       className={`p-4 hover:shadow-md transition-all cursor-pointer ${
-                        !notification.isRead ? 'border-l-4 border-l-[#0EA8A8] bg-[#0EA8A8]/5' : ''
+                        !notification.read ? 'border-l-4 border-l-[#0EA8A8] bg-[#0EA8A8]/5' : ''
                       }`}
                       onClick={() => {
-                        if (!notification.isRead) markAsRead(notification.id);
-                        if (notification.link) navigate(`/${user.role}${notification.link}`);
+                        if (!notification.read) markAsRead(notification.id);
+                        if (notification.link) navigate(`/member${notification.link}`);
                       }}
                     >
                       <div className="flex items-start gap-4">
@@ -368,13 +288,13 @@ export default function Notifications() {
                               <div className="flex items-center gap-2 flex-wrap mb-1">
                                 <h3 className="font-semibold text-[#1B2A4A]">{notification.title}</h3>
                                 <Badge className={badge.className}>{badge.label}</Badge>
-                                {!notification.isRead && <Badge className="bg-[#0EA8A8] text-white">Nouveau</Badge>}
+                                {!notification.read && <Badge className="bg-[#0EA8A8] text-white">Nouveau</Badge>}
                               </div>
-                              <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
+                              <p className="text-sm text-gray-600 mb-2">{notification.description}</p>
                               <div className="flex items-center gap-3 text-xs text-gray-400">
                                 <div className="flex items-center gap-1">
                                   <Clock className="w-3 h-3" />
-                                  <span>{formatDate(notification.createdAt)}</span>
+                                  <span>{formatDate(notification.timestamp)}</span>
                                 </div>
                                 {notification.sender && (
                                   <div className="flex items-center gap-1">
@@ -385,7 +305,7 @@ export default function Notifications() {
                               </div>
                             </div>
                             <div className="flex gap-1">
-                              {!notification.isRead && (
+                              {!notification.read && (
                                 <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); markAsRead(notification.id); }} className="text-gray-400">
                                   <Eye className="w-4 h-4" />
                                 </Button>

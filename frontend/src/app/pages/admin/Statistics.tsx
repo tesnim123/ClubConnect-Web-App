@@ -1,3 +1,4 @@
+import React from "react";
 import { Sidebar } from "../../components/Sidebar";
 import { TopNav } from "../../components/TopNav";
 import { clubs, events } from "../../data/mockData";
@@ -33,7 +34,7 @@ export default function Statistics() {
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopNav 
-  userId="admin_1"
+  userId="1"
   userName="Admin User"
   userRole="Administrateur"
   userRoleType="admin"
