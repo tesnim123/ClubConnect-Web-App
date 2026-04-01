@@ -18,6 +18,8 @@ import MemberManagement from "./pages/staff/MemberManagement";
 import EventRequestCreation from "./pages/staff/EventRequestCreation";
 import EventRequestsList from "./pages/staff/EventRequestsList";
 import ChannelManagement from "./pages/staff/ChannelManagement";
+import StaffForum from "./pages/staff/Forum";
+import StaffProfile from "./pages/staff/Profile";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/Dashboard";
@@ -78,6 +80,8 @@ export const router = createBrowserRouter([
       { path: "staff/event/new", Component: EventRequestCreation },
       { path: "staff/events", Component: EventRequestsList },
       { path: "staff/channels", Component: ChannelManagement },
+      { path: "staff/forum", Component: StaffForum },
+      { path: "staff/profile", Component: StaffProfile },
       
       // Admin routes
       { path: "admin/dashboard", Component: AdminDashboard },

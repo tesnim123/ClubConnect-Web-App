@@ -1,17 +1,26 @@
-// components/Sidebar.tsx
 import { Link } from "react-router";
-import { Home, Calendar, MessageSquare, Users, Settings, BarChart3, Building2, MessagesSquare } from "lucide-react";
+import {
+  BarChart3,
+  Building2,
+  Calendar,
+  Home,
+  MessageSquare,
+  MessagesSquare,
+  Settings,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 import { cn } from "../components/ui/utils";
 
 interface SidebarProps {
-  role: 'member' | 'staff' | 'admin';
+  role: "member" | "staff" | "president" | "admin";
   collapsed?: boolean;
 }
 
 export function Sidebar({ role, collapsed = false }: SidebarProps) {
   const memberLinks = [
     { to: "/member/dashboard", icon: Home, label: "Accueil" },
-    { to: "/member/events", icon: Calendar, label: "Événements" },
+    { to: "/member/events", icon: Calendar, label: "Evenements" },
     { to: "/member/chat", icon: MessageSquare, label: "Chat" },
     { to: "/member/forum", icon: Users, label: "Forum" },
     { to: "/member/profile", icon: Settings, label: "Profil" },
@@ -19,29 +28,44 @@ export function Sidebar({ role, collapsed = false }: SidebarProps) {
 
   const staffLinks = [
     { to: "/staff/dashboard", icon: Home, label: "Tableau de bord" },
-    { to: "/staff/events", icon: Calendar, label: "Événements" },
+    { to: "/staff/events", icon: Calendar, label: "Evenements" },
+    { to: "/staff/channels", icon: MessageSquare, label: "Canaux" },
+    { to: "/staff/profile", icon: Settings, label: "Profil" },
+  ];
+
+  const presidentLinks = [
+    { to: "/staff/dashboard", icon: ShieldCheck, label: "Dashboard" },
+    { to: "/staff/events", icon: Calendar, label: "Evenements" },
     { to: "/staff/members", icon: Users, label: "Membres" },
     { to: "/staff/channels", icon: MessageSquare, label: "Canaux" },
-    { to: "/member/profile", icon: Settings, label: "Profil" },
+    { to: "/staff/forum", icon: MessagesSquare, label: "Forum" },
+    { to: "/staff/profile", icon: Settings, label: "Profil" },
   ];
 
   const adminLinks = [
     { to: "/admin/dashboard", icon: Home, label: "Tableau de bord" },
     { to: "/admin/clubs", icon: Building2, label: "Clubs" },
-    { to: "/admin/events", icon: Calendar, label: "Événements" },
+    { to: "/admin/events", icon: Calendar, label: "Evenements" },
     { to: "/admin/members", icon: Users, label: "Membres" },
-    { to: "/admin/forums", icon: MessagesSquare, label: "Forums" }, // Nouveau lien pour les forums
+    { to: "/admin/forums", icon: MessagesSquare, label: "Forums" },
     { to: "/admin/statistics", icon: BarChart3, label: "Statistiques" },
     { to: "/admin/communication", icon: MessageSquare, label: "Communication" },
   ];
 
-  const links = role === 'admin' ? adminLinks : role === 'staff' ? staffLinks : memberLinks;
+  const links =
+    role === "admin"
+      ? adminLinks
+      : role === "president"
+        ? presidentLinks
+        : role === "staff"
+          ? staffLinks
+          : memberLinks;
 
   return (
     <aside
       className={cn(
         "bg-[#1B2A4A] text-white transition-all duration-300 flex flex-col",
-        collapsed ? "w-16" : "w-60"
+        collapsed ? "w-16" : "w-60",
       )}
     >
       <div className="p-4 border-b border-[#2D3E5F]">
@@ -52,7 +76,7 @@ export function Sidebar({ role, collapsed = false }: SidebarProps) {
           {!collapsed && (
             <div>
               <h2 className="font-bold text-lg">ClubConnect</h2>
-              <p className="text-xs text-gray-400">Connectez. Créez.</p>
+              <p className="text-xs text-gray-400">Connectez. Creez.</p>
             </div>
           )}
         </Link>
@@ -82,7 +106,7 @@ export function Sidebar({ role, collapsed = false }: SidebarProps) {
       <div className="p-4 border-t border-[#2D3E5F]">
         <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2D3E5F] transition-colors">
           <Settings className="w-5 h-5 flex-shrink-0" />
-          {!collapsed && <span>Paramètres</span>}
+          {!collapsed && <span>Parametres</span>}
         </button>
       </div>
     </aside>

@@ -30,6 +30,7 @@ export interface Event {
   title: string;
   description: string;
   type: 'intra-club' | 'inter-club';
+  format?: 'event' | 'workshop';
   clubId: string;
   clubName: string;
   clubLogo: string;
@@ -101,6 +102,41 @@ export interface ForumPost {
   timestamp: string;
   isPinned?: boolean;
   attachments?: FileAttachment[];
+}
+
+export interface MembershipRequest {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  avatar?: string;
+  clubId: string;
+  clubName: string;
+  requestedAt: string;
+  motivation: string;
+  skills?: string[];
+}
+
+export interface ChannelJoinRequest {
+  id: string;
+  channelId: string;
+  channelName: string;
+  requesterId: string;
+  requesterName: string;
+  requesterRole: User['role'];
+  requestedAt: string;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+}
+
+export interface ClubForum {
+  id: string;
+  clubId: string;
+  name: string;
+  description: string;
+  visibility: 'club' | 'staff';
+  memberCount: number;
+  postCount: number;
 }
 
 export interface Notification {
@@ -185,6 +221,7 @@ export const events: Event[] = [
     title: 'Compétition de Robots',
     description: 'Compétition annuelle de robotique entre les clubs universitaires',
     type: 'intra-club',
+    format: 'event',
     clubId: '1',
     clubName: 'Club Robotique',
     clubLogo: 'https://api.dicebear.com/7.x/shapes/svg?seed=robot',
@@ -215,6 +252,7 @@ export const events: Event[] = [
     title: 'Atelier Arduino Débutants',
     description: 'Initiation à la programmation Arduino pour débutants',
     type: 'intra-club',
+    format: 'workshop',
     clubId: '1',
     clubName: 'Club Robotique',
     clubLogo: 'https://api.dicebear.com/7.x/shapes/svg?seed=robot',
@@ -236,6 +274,7 @@ export const events: Event[] = [
     title: 'Soirée Théâtre Inter-Clubs',
     description: 'Spectacle ouvert à tous les clubs de l\'université',
     type: 'inter-club',
+    format: 'event',
     clubId: '2',
     clubName: 'Club Théâtre',
     clubLogo: 'https://api.dicebear.com/7.x/shapes/svg?seed=theater',
@@ -379,6 +418,21 @@ export const forumPosts: ForumPost[] = [
       },
     ],
   },
+  {
+    id: '3',
+    forumId: '2',
+    clubId: '1',
+    clubName: 'Club Robotique',
+    authorId: '2',
+    authorName: 'Thomas Bernard',
+    authorAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Thomas',
+    title: 'Planning des workshops du mois d\'avril',
+    body: 'Voici la proposition de planning pour les workshops d\'avril. Le prÃ©sident peut valider ou ajuster les crÃ©neaux avant publication finale.',
+    tags: ['Workshop', 'Planning', 'Organisation'],
+    reactions: 9,
+    commentCount: 4,
+    timestamp: '2026-03-26T14:15:00',
+  },
 ];
 
 export const notifications: Notification[] = [
@@ -476,5 +530,89 @@ export const members: User[] = [
     joinDate: '2025-01-08',
     status: 'pending',
     online: false,
+  },
+];
+
+export const membershipRequests: MembershipRequest[] = [
+  {
+    id: 'mr1',
+    firstName: 'Amina',
+    lastName: 'Diallo',
+    email: 'amina.diallo@university.edu',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Amina',
+    clubId: '1',
+    clubName: 'Club Robotique',
+    requestedAt: '2026-03-29T09:15:00',
+    motivation: 'Je souhaite contribuer au pÃ´le prototypage et participer aux workshops Arduino.',
+    skills: ['Arduino', 'Capteurs', 'Prototypage'],
+  },
+  {
+    id: 'mr2',
+    firstName: 'Youssef',
+    lastName: 'Benali',
+    email: 'youssef.benali@university.edu',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Youssef',
+    clubId: '1',
+    clubName: 'Club Robotique',
+    requestedAt: '2026-03-30T15:40:00',
+    motivation: 'J\'ai dÃ©jÃ  gÃ©rÃ© des activitÃ©s associatives et je peux aider en communication et organisation.',
+    skills: ['Gestion d\'Ã©quipe', 'Communication', 'Organisation'],
+  },
+  {
+    id: 'mr3',
+    firstName: 'Sarah',
+    lastName: 'Okafor',
+    email: 'sarah.okafor@university.edu',
+    clubId: '1',
+    clubName: 'Club Robotique',
+    requestedAt: '2026-03-31T11:05:00',
+    motivation: 'Je veux rejoindre le club pour apprendre et participer aux compÃ©titions.',
+    skills: ['Python', 'Vision par ordinateur'],
+  },
+];
+
+export const channelJoinRequests: ChannelJoinRequest[] = [
+  {
+    id: 'cj1',
+    channelId: '2',
+    channelName: 'robotique-staff',
+    requesterId: '3',
+    requesterName: 'Lucas Martin',
+    requesterRole: 'staff',
+    requestedAt: '2026-03-30T10:20:00',
+    reason: 'Je dois suivre la planification interne des ateliers et des rÃ©unions staff.',
+    status: 'pending',
+  },
+  {
+    id: 'cj2',
+    channelId: '3',
+    channelName: 'tous-les-staffs',
+    requesterId: '2',
+    requesterName: 'Thomas Bernard',
+    requesterRole: 'vicepresident',
+    requestedAt: '2026-03-28T13:00:00',
+    reason: 'Participation Ã  la coordination des activitÃ©s inter-clubs.',
+    status: 'approved',
+  },
+];
+
+export const clubForums: ClubForum[] = [
+  {
+    id: '1',
+    clubId: '1',
+    name: 'Forum gÃ©nÃ©ral robotique',
+    description: 'Espace principal pour les discussions, ressources et annonces du club.',
+    visibility: 'club',
+    memberCount: 45,
+    postCount: 18,
+  },
+  {
+    id: '2',
+    clubId: '1',
+    name: 'Forum organisation staff',
+    description: 'Discussions de coordination sur les membres, ateliers et Ã©vÃ©nements du bureau.',
+    visibility: 'staff',
+    memberCount: 6,
+    postCount: 7,
   },
 ];
