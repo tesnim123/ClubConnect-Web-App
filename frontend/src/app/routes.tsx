@@ -8,6 +8,7 @@ import PendingApproval from "./pages/PendingApproval";
 
 import MemberDashboard from "./pages/member/Dashboard";
 import MemberEvents from "./pages/member/Events";
+ // Ajout de l'import
 import MemberChat from "./pages/member/Chat";
 import MemberForum from "./pages/member/Forum";
 import MemberProfile from "./pages/member/Profile";
@@ -37,6 +38,7 @@ import Notifications from "./components/Notifications";
 import AdminProfile from "./pages/admin/ProfileAdmin";
 import AdminSettings from "./pages/admin/SettingsAdmin";
 import AdminNotifications from "./pages/admin/NotificationsAdmin";
+
 export const router = createBrowserRouter([
   {
     path: "/",
@@ -48,26 +50,27 @@ export const router = createBrowserRouter([
       { path: "pending", Component: PendingApproval },
 
       // Profile routes with role prefix and dynamic ID
-      { path: "admin/profile/:id", Component: AdminProfile },//ok
+      { path: "admin/profile/:id", Component: AdminProfile },
       { path: "staff/profile/:id", Component: Profile },
       { path: "president/profile/:id", Component: Profile },
-      { path: "member/profile/:id", Component: Profile },//ok
+      { path: "member/profile/:id", Component: Profile },
 
       // Settings routes with role prefix and dynamic ID
-      { path: "admin/settings/:id", Component: AdminSettings },//ok
+      { path: "admin/settings/:id", Component: AdminSettings },
       { path: "staff/settings/:id", Component: Settings },
       { path: "president/settings/:id", Component: Settings },
-      { path: "member/settings/:id", Component: Settings },//ok
+      { path: "member/settings/:id", Component: Settings },
 
       // Notifications routes with role prefix and dynamic ID
-      { path: "admin/notifications/:id", Component: AdminNotifications },//ok
+      { path: "admin/notifications/:id", Component: AdminNotifications },
       { path: "staff/notifications/:id", Component: Notifications },
       { path: "president/notifications/:id", Component: Notifications },
-      { path: "member/notifications/:id", Component: Notifications },//ok
+      { path: "member/notifications/:id", Component: Notifications },
 
       // Member routes
       { path: "member/dashboard", Component: MemberDashboard },
       { path: "member/events", Component: MemberEvents },
+      // Nouvelle route pour les détails
       { path: "member/chat", Component: MemberChat },
       { path: "member/forum", Component: MemberForum },
       { path: "member/profile", Component: MemberProfile },

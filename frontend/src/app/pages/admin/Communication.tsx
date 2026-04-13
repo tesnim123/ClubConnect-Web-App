@@ -29,11 +29,16 @@ import {
   Paperclip,
   Image,
   FileText,
-  X
+  X,
+  Plus,
+  Trash2,
+  UserPlus,
+  ChevronLeft,
+  Smile
 } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import EmojiPicker from 'emoji-picker-react';
 
 interface Message {
   id: string;
@@ -55,19 +60,51 @@ interface Attachment {
   url: string;
 }
 
+interface ChannelMember {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  role: string;
+  joinedAt: string;
+}
+
 interface Channel {
   id: string;
   name: string;
-  type: 'global_staff' | 'club_staff' | 'presidents' | 'vice_presidents' | 'club_leadership';
+  type: 'global_staff' | 'club_staff' | 'presidents' | 'club_president';
   clubName?: string;
   clubId?: string;
   description: string;
   members: number;
+  membersList: ChannelMember[];
   unreadCount: number;
   lastMessage?: Message;
   icon: any;
   color: string;
 }
+
+// Données d'exemple pour les membres des canaux
+const mockMembersList: { [key: string]: ChannelMember[] } = {
+  global_staff: [
+    { id: "staff1", name: "Marie Martin", email: "marie.martin@example.com", role: "Staff", joinedAt: "2024-01-15" },
+    { id: "staff2", name: "Pierre Durand", email: "pierre.durand@example.com", role: "Staff", joinedAt: "2024-01-20" },
+    { id: "staff3", name: "Sophie Bernard", email: "sophie.bernard@example.com", role: "Staff", joinedAt: "2024-02-01" },
+  ],
+  club1_president: [
+    { id: "pres1", name: "Jean Dupont", email: "jean.dupont@clubinfo.com", role: "Président", joinedAt: "2024-01-01" },
+  ],
+  club2_president: [
+    { id: "pres2", name: "Thomas Martin", email: "thomas.martin@clubsport.com", role: "Président", joinedAt: "2024-01-01" },
+  ],
+  club3_president: [
+    { id: "pres3", name: "Julie Petit", email: "julie.petit@clubart.com", role: "Présidente", joinedAt: "2024-01-01" },
+  ],
+  club1_staff: [
+    { id: "staff1", name: "Marie Martin", email: "marie.martin@example.com", role: "Staff", joinedAt: "2024-01-15" },
+    { id: "staff2", name: "Pierre Durand", email: "pierre.durand@example.com", role: "Staff", joinedAt: "2024-01-20" },
+  ]
+};
 
 // Données d'exemple pour les canaux
 const mockChannels: Channel[] = [
@@ -76,7 +113,8 @@ const mockChannels: Channel[] = [
     name: "Staff Global",
     type: "global_staff",
     description: "Canal de communication avec tous les staff de tous les clubs",
-    members: 24,
+    members: 3,
+    membersList: mockMembersList.global_staff,
     unreadCount: 3,
     icon: Users,
     color: "from-purple-500 to-purple-700"
@@ -88,7 +126,8 @@ const mockChannels: Channel[] = [
     clubName: "Club d'Informatique",
     clubId: "club1",
     description: "Canal avec le staff du Club d'Informatique",
-    members: 8,
+    members: 2,
+    membersList: mockMembersList.club1_staff,
     unreadCount: 1,
     icon: Building,
     color: "from-[#0EA8A8] to-[#1B2A4A]"
@@ -100,7 +139,8 @@ const mockChannels: Channel[] = [
     clubName: "Club Sportif",
     clubId: "club2",
     description: "Canal avec le staff du Club Sportif",
-    members: 6,
+    members: 0,
+    membersList: [],
     unreadCount: 0,
     icon: Building,
     color: "from-blue-500 to-blue-700"
@@ -112,7 +152,8 @@ const mockChannels: Channel[] = [
     clubName: "Club Artistique",
     clubId: "club3",
     description: "Canal avec le staff du Club Artistique",
-    members: 5,
+    members: 0,
+    membersList: [],
     unreadCount: 2,
     icon: Building,
     color: "from-purple-500 to-purple-700"
@@ -122,44 +163,54 @@ const mockChannels: Channel[] = [
     name: "Présidents",
     type: "presidents",
     description: "Canal avec tous les présidents des clubs",
-    members: 5,
+    members: 3,
+    membersList: [
+      { id: "pres1", name: "Jean Dupont", email: "jean.dupont@clubinfo.com", role: "Président", joinedAt: "2024-01-01" },
+      { id: "pres2", name: "Thomas Martin", email: "thomas.martin@clubsport.com", role: "Président", joinedAt: "2024-01-01" },
+      { id: "pres3", name: "Julie Petit", email: "julie.petit@clubart.com", role: "Présidente", joinedAt: "2024-01-01" },
+    ],
     unreadCount: 0,
     icon: Crown,
     color: "from-yellow-500 to-yellow-700"
   },
   {
-    id: "vice_presidents",
-    name: "Vice-présidents",
-    type: "vice_presidents",
-    description: "Canal avec tous les vice-présidents des clubs",
-    members: 5,
-    unreadCount: 0,
-    icon: Shield,
-    color: "from-indigo-500 to-indigo-700"
-  },
-  {
-    id: "club1_leadership",
-    name: "Direction - Club Informatique",
-    type: "club_leadership",
+    id: "club1_president",
+    name: "Président - Club Informatique",
+    type: "club_president",
     clubName: "Club d'Informatique",
     clubId: "club1",
-    description: "Canal avec président et vice-président du Club Informatique",
-    members: 2,
-    unreadCount: 1,
-    icon: Star,
+    description: "Canal avec le président du Club d'Informatique",
+    members: 1,
+    membersList: mockMembersList.club1_president,
+    unreadCount: 0,
+    icon: Crown,
     color: "from-[#0EA8A8] to-[#1B2A4A]"
   },
   {
-    id: "club2_leadership",
-    name: "Direction - Club Sportif",
-    type: "club_leadership",
+    id: "club2_president",
+    name: "Président - Club Sportif",
+    type: "club_president",
     clubName: "Club Sportif",
     clubId: "club2",
-    description: "Canal avec président et vice-président du Club Sportif",
-    members: 2,
+    description: "Canal avec le président du Club Sportif",
+    members: 1,
+    membersList: mockMembersList.club2_president,
     unreadCount: 0,
-    icon: Star,
+    icon: Crown,
     color: "from-blue-500 to-blue-700"
+  },
+  {
+    id: "club3_president",
+    name: "Président - Club Artistique",
+    type: "club_president",
+    clubName: "Club Artistique",
+    clubId: "club3",
+    description: "Canal avec le président du Club Artistique",
+    members: 1,
+    membersList: mockMembersList.club3_president,
+    unreadCount: 0,
+    icon: Crown,
+    color: "from-purple-500 to-purple-700"
   }
 ];
 
@@ -243,6 +294,14 @@ const mockMessages: { [key: string]: Message[] } = {
   ]
 };
 
+// Membres disponibles à ajouter (simulation)
+const availableUsers = [
+  { id: "user1", name: "Alice Moreau", email: "alice.moreau@example.com", role: "Staff" },
+  { id: "user2", name: "Lucas Bernard", email: "lucas.bernard@example.com", role: "Staff" },
+  { id: "user3", name: "Emma Dubois", email: "emma.dubois@example.com", role: "Staff" },
+  { id: "user4", name: "Hugo Lambert", email: "hugo.lambert@example.com", role: "Staff" },
+];
+
 export default function AdminCommunication() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(mockChannels[0]);
@@ -252,13 +311,32 @@ export default function AdminCommunication() {
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const [attachments, setAttachments] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [showMembersPanel, setShowMembersPanel] = useState(false);
+  const [showAddMemberInput, setShowAddMemberInput] = useState(false);
+  const [memberSearchQuery, setMemberSearchQuery] = useState("");
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<ChannelMember | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
 
-  // Catégories de canaux
+  // Fermer le sélecteur d'emojis quand on clique en dehors
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Catégories de canaux (sans les vice-présidents)
   const channelCategories = [
-    { id: "global", name: "Canaux Généraux", channels: channels.filter(c => c.type === 'global_staff' || c.type === 'presidents' || c.type === 'vice_presidents') },
+    { id: "global", name: "Canaux Généraux", channels: channels.filter(c => c.type === 'global_staff' || c.type === 'presidents') },
     { id: "club_staff", name: "Staff par Club", channels: channels.filter(c => c.type === 'club_staff') },
-    { id: "leadership", name: "Direction des Clubs", channels: channels.filter(c => c.type === 'club_leadership') }
+    { id: "club_president", name: "Présidents des Clubs", channels: channels.filter(c => c.type === 'club_president') }
   ];
 
   const toggleCategory = (categoryId: string) => {
@@ -301,7 +379,6 @@ export default function AdminCommunication() {
     setIsUploading(true);
     
     try {
-      // Simuler l'upload des fichiers
       await new Promise(resolve => setTimeout(resolve, 500));
       
       const newAttachments: Attachment[] = attachments.map((file, index) => ({
@@ -309,7 +386,7 @@ export default function AdminCommunication() {
         name: file.name,
         size: file.size,
         type: file.type,
-        url: URL.createObjectURL(file) // Simuler une URL après upload
+        url: URL.createObjectURL(file)
       }));
 
       const newMessage: Message = {
@@ -358,27 +435,76 @@ export default function AdminCommunication() {
     return <Icon className="w-5 h-5" />;
   };
 
-  const AttachmentPreview = ({ attachments }: { attachments: Attachment[] }) => (
-    <div className="mt-2 space-y-2">
-      {attachments.map((file) => (
-        <div key={file.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
-          {getFileIcon(file.name)}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-700 truncate">{file.name}</p>
-            <p className="text-xs text-gray-400">{formatFileSize(file.size)}</p>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-gray-400 hover:text-[#0EA8A8]"
-            onClick={() => window.open(file.url, '_blank')}
-          >
-            <Download className="w-4 h-4" />
-          </Button>
-        </div>
-      ))}
-    </div>
-  );
+  // Gestion des membres
+  const handleRemoveMember = (member: ChannelMember) => {
+    setMemberToRemove(member);
+    setShowConfirmDialog(true);
+  };
+
+  const confirmRemoveMember = () => {
+    if (!selectedChannel || !memberToRemove) return;
+    
+    const updatedMembersList = selectedChannel.membersList.filter(m => m.id !== memberToRemove.id);
+    const updatedChannels = channels.map(channel => 
+      channel.id === selectedChannel.id 
+        ? { ...channel, membersList: updatedMembersList, members: updatedMembersList.length }
+        : channel
+    );
+    
+    setChannels(updatedChannels);
+    setSelectedChannel({ ...selectedChannel, membersList: updatedMembersList, members: updatedMembersList.length });
+    toast.success(`${memberToRemove.name} a été retiré du canal`);
+    setShowConfirmDialog(false);
+    setMemberToRemove(null);
+  };
+
+  const handleAddMember = (user: typeof availableUsers[0]) => {
+    if (!selectedChannel) return;
+    
+    // Vérifier si l'utilisateur est déjà dans le canal
+    if (selectedChannel.membersList.some(m => m.id === user.id)) {
+      toast.error("Ce membre est déjà dans le canal");
+      return;
+    }
+    
+    const newMember: ChannelMember = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: "Staff",
+      joinedAt: new Date().toISOString()
+    };
+    
+    const updatedMembersList = [...selectedChannel.membersList, newMember];
+    const updatedChannels = channels.map(channel => 
+      channel.id === selectedChannel.id 
+        ? { ...channel, membersList: updatedMembersList, members: updatedMembersList.length }
+        : channel
+    );
+    
+    setChannels(updatedChannels);
+    setSelectedChannel({ ...selectedChannel, membersList: updatedMembersList, members: updatedMembersList.length });
+    toast.success(`${user.name} a été ajouté au canal`);
+    setShowAddMemberInput(false);
+    setMemberSearchQuery("");
+  };
+
+  // Filtrer les utilisateurs disponibles
+  const getAvailableUsers = () => {
+    if (!selectedChannel) return [];
+    const currentMemberIds = new Set(selectedChannel.membersList.map(m => m.id));
+    return availableUsers.filter(user => 
+      !currentMemberIds.has(user.id) &&
+      (user.name.toLowerCase().includes(memberSearchQuery.toLowerCase()) ||
+       user.email.toLowerCase().includes(memberSearchQuery.toLowerCase()))
+    );
+  };
+
+  // Fonction pour ajouter un emoji
+  const onEmojiClick = (emojiObject: any) => {
+    setMessageInput(prev => prev + emojiObject.emoji);
+    setShowEmojiPicker(false);
+  };
 
   return (
     <div className="flex h-screen">
@@ -386,12 +512,12 @@ export default function AdminCommunication() {
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopNav 
-  userId="1"
-  userName="Admin User"
-  userRole="Administrateur"
-  userRoleType="admin"
-  notificationCount={5}
-/>
+          userId="1"
+          userName="Admin User"
+          userRole="Administrateur"
+          userRoleType="admin"
+          notificationCount={5}
+        />
 
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar des canaux */}
@@ -442,7 +568,11 @@ export default function AdminCommunication() {
                         {filteredChannels.map((channel) => (
                           <button
                             key={channel.id}
-                            onClick={() => setSelectedChannel(channel)}
+                            onClick={() => {
+                              setSelectedChannel(channel);
+                              setShowMembersPanel(false);
+                              setShowAddMemberInput(false);
+                            }}
                             className={`w-full px-4 py-3 flex items-start gap-3 hover:bg-gray-50 transition-colors text-left ${
                               selectedChannel?.id === channel.id ? 'bg-[#0EA8A8]/10 border-r-2 border-[#0EA8A8]' : ''
                             }`}
@@ -480,170 +610,317 @@ export default function AdminCommunication() {
             </div>
           </div>
 
-          {/* Zone de chat */}
+          {/* Zone de chat principale */}
           {selectedChannel ? (
-            <div className="flex-1 flex flex-col bg-[#F7F8FC]">
-              {/* En-tête du chat */}
-              <div className="bg-white border-b border-gray-200 px-6 py-4">
-                <div className="flex items-center gap-3">
-                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-r ${selectedChannel.color} flex items-center justify-center text-white`}>
-                    {getChannelIcon(selectedChannel)}
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-xl font-bold text-[#1B2A4A]">{selectedChannel.name}</h2>
-                    <p className="text-sm text-gray-500">{selectedChannel.description}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      <Bell className="w-4 h-4 mr-2" />
-                      Notifications
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      <Users className="w-4 h-4 mr-2" />
-                      {selectedChannel.members} membres
-                    </Button>
+            <div className={`flex-1 flex transition-all duration-300 overflow-hidden`}>
+              <div className="flex-1 flex flex-col bg-[#F7F8FC]">
+                {/* En-tête du chat */}
+                <div className="bg-white border-b border-gray-200 px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-12 h-12 rounded-lg bg-gradient-to-r ${selectedChannel.color} flex items-center justify-center text-white`}>
+                      {getChannelIcon(selectedChannel)}
+                    </div>
+                    <div className="flex-1">
+                      <h2 className="text-xl font-bold text-[#1B2A4A]">{selectedChannel.name}</h2>
+                      <p className="text-sm text-gray-500">{selectedChannel.description}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm">
+                        <Bell className="w-4 h-4 mr-2" />
+                        Notifications
+                      </Button>
+                      <Button 
+                        variant={showMembersPanel ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setShowMembersPanel(!showMembersPanel)}
+                        className={showMembersPanel ? "bg-[#0EA8A8] hover:bg-[#0c8e8e]" : ""}
+                      >
+                        <Users className="w-4 h-4 mr-2" />
+                        {selectedChannel.members} membre{selectedChannel.members !== 1 ? 's' : ''}
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                {(messages[selectedChannel.id] || []).map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex gap-3 ${message.isAdmin ? 'flex-row-reverse' : ''}`}
-                  >
-                    <Avatar className="w-8 h-8">
-                      <AvatarFallback className={message.isAdmin ? 'bg-[#0EA8A8] text-white' : 'bg-gray-200'}>
-                        {message.senderName.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className={`flex-1 ${message.isAdmin ? 'flex justify-end' : ''}`}>
-                      <div className={`inline-block max-w-[70%] ${message.isAdmin ? 'text-right' : ''}`}>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-medium text-gray-900">{message.senderName}</span>
-                          <span className="text-xs text-gray-400">{formatTimestamp(message.timestamp)}</span>
-                          {message.isAdmin && (
-                            <Badge variant="outline" className="text-xs bg-[#0EA8A8]/10 text-[#0EA8A8]">
-                              Admin
-                            </Badge>
-                          )}
-                        </div>
-                        <div className={`px-4 py-2 rounded-lg ${
-                          message.isAdmin 
-                            ? 'bg-[#0EA8A8] text-white' 
-                            : 'bg-white border border-gray-200'
-                        }`}>
-                          {message.content && <p className="text-sm">{message.content}</p>}
-                          {message.attachments && message.attachments.length > 0 && (
-                            <div className="mt-2 space-y-2">
-                              {message.attachments.map((file) => (
-                                <div key={file.id} className={`flex items-center gap-2 p-2 rounded-lg ${
-                                  message.isAdmin ? 'bg-white/20' : 'bg-gray-50'
-                                }`}>
-                                  {getFileIcon(file.name)}
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">{file.name}</p>
-                                    <p className="text-xs opacity-75">{formatFileSize(file.size)}</p>
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  {(messages[selectedChannel.id] || []).map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex gap-3 ${message.isAdmin ? 'flex-row-reverse' : ''}`}
+                    >
+                      <Avatar className="w-8 h-8">
+                        <AvatarFallback className={message.isAdmin ? 'bg-[#0EA8A8] text-white' : 'bg-gray-200'}>
+                          {message.senderName.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className={`flex-1 ${message.isAdmin ? 'flex justify-end' : ''}`}>
+                        <div className={`inline-block max-w-[70%] ${message.isAdmin ? 'text-right' : ''}`}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm font-medium text-gray-900">{message.senderName}</span>
+                            <span className="text-xs text-gray-400">{formatTimestamp(message.timestamp)}</span>
+                            {message.isAdmin && (
+                              <Badge variant="outline" className="text-xs bg-[#0EA8A8]/10 text-[#0EA8A8]">
+                                Admin
+                              </Badge>
+                            )}
+                          </div>
+                          <div className={`px-4 py-2 rounded-lg ${
+                            message.isAdmin 
+                              ? 'bg-[#0EA8A8] text-white' 
+                              : 'bg-white border border-gray-200'
+                          }`}>
+                            {message.content && <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>}
+                            {message.attachments && message.attachments.length > 0 && (
+                              <div className="mt-2 space-y-2">
+                                {message.attachments.map((file) => (
+                                  <div key={file.id} className={`flex items-center gap-2 p-2 rounded-lg ${
+                                    message.isAdmin ? 'bg-white/20' : 'bg-gray-50'
+                                  }`}>
+                                    {getFileIcon(file.name)}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium truncate">{file.name}</p>
+                                      <p className="text-xs opacity-75">{formatFileSize(file.size)}</p>
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className={message.isAdmin ? 'text-white hover:bg-white/20' : 'text-gray-400 hover:text-[#0EA8A8]'}
+                                      onClick={() => window.open(file.url, '_blank')}
+                                    >
+                                      <Download className="w-4 h-4" />
+                                    </Button>
                                   </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className={message.isAdmin ? 'text-white hover:bg-white/20' : 'text-gray-400 hover:text-[#0EA8A8]'}
-                                    onClick={() => window.open(file.url, '_blank')}
-                                  >
-                                    <Download className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
+                  ))}
+                </div>
+
+                {/* Zone de saisie avec pièces jointes et emojis */}
+                <div className="bg-white border-t border-gray-200 p-4">
+                  {attachments.length > 0 && (
+                    <div className="mb-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-gray-700">Pièces jointes ({attachments.length})</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setAttachments([])}
+                          className="text-gray-400 hover:text-red-500"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        {attachments.map((file, index) => (
+                          <div key={index} className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200">
+                            {getFileIcon(file.name)}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-700 truncate">{file.name}</p>
+                              <p className="text-xs text-gray-400">{formatFileSize(file.size)}</p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeAttachment(index)}
+                              className="text-gray-400 hover:text-red-500"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex gap-2 relative">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileSelect}
+                      multiple
+                      className="hidden"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="shrink-0"
+                      title="Joindre un fichier"
+                    >
+                      <Paperclip className="w-4 h-4" />
+                    </Button>
+                    
+                    {/* Bouton Emoji avec EmojiPicker */}
+                    <div className="relative" ref={emojiPickerRef}>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        disabled={isUploading}
+                        className="shrink-0"
+                        title="Ajouter un emoji"
+                      >
+                        <Smile className="w-4 h-4" />
+                      </Button>
+                      {showEmojiPicker && (
+                        <div className="absolute bottom-full mb-2 left-0 z-50">
+                          <EmojiPicker
+                            onEmojiClick={onEmojiClick}
+                            autoFocusSearch={false}
+                            skinTonesDisabled={true}
+                            searchPlaceholder="Rechercher un emoji..."
+                            width={350}
+                            height={400}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    
+                    <Input
+                      value={messageInput}
+                      onChange={(e) => setMessageInput(e.target.value)}
+                      placeholder="Écrivez votre message..."
+                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                      disabled={isUploading}
+                      className="flex-1"
+                    />
+                    <Button 
+                      onClick={handleSendMessage}
+                      disabled={(!messageInput.trim() && attachments.length === 0) || isUploading}
+                      className="bg-[#0EA8A8] hover:bg-[#0c8e8e]"
+                    >
+                      {isUploading ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4 mr-2" />
+                      )}
+                      {isUploading ? "Envoi..." : "Envoyer"}
+                    </Button>
                   </div>
-                ))}
+                  <p className="text-xs text-gray-400 mt-2">
+                    Messages envoyés en tant qu'Admin - Vous pouvez joindre des fichiers (images, PDF, documents) ou ajouter des emojis
+                  </p>
+                </div>
               </div>
 
-              {/* Zone de saisie avec pièces jointes */}
-              <div className="bg-white border-t border-gray-200 p-4">
-                {attachments.length > 0 && (
-                  <div className="mb-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">Pièces jointes ({attachments.length})</span>
+              {/* Panneau latéral des membres (style Messenger) */}
+              {showMembersPanel && (
+                <div className="w-80 bg-white border-l border-gray-200 flex flex-col h-full overflow-hidden">
+                  {/* En-tête du panneau */}
+                  <div className="p-4 border-b border-gray-200 flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
-                        size="sm"
-                        onClick={() => setAttachments([])}
-                        className="text-gray-400 hover:text-red-500"
+                        size="icon"
+                        onClick={() => setShowMembersPanel(false)}
+                        className="lg:hidden"
                       >
-                        <X className="w-4 h-4" />
+                        <ChevronLeft className="w-5 h-5" />
                       </Button>
+                      <h3 className="font-semibold text-[#1B2A4A]">
+                        Membres du canal
+                      </h3>
                     </div>
-                    <div className="space-y-2">
-                      {attachments.map((file, index) => (
-                        <div key={index} className="flex items-center gap-2 p-2 bg-white rounded-lg border border-gray-200">
-                          {getFileIcon(file.name)}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-700 truncate">{file.name}</p>
-                            <p className="text-xs text-gray-400">{formatFileSize(file.size)}</p>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeAttachment(index)}
-                            className="text-gray-400 hover:text-red-500"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowAddMemberInput(!showAddMemberInput)}
+                      className="text-[#0EA8A8] hover:text-[#0c8e8e] shrink-0"
+                    >
+                      <UserPlus className="w-5 h-5" />
+                    </Button>
                   </div>
-                )}
-                
-                <div className="flex gap-2">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileSelect}
-                    multiple
-                    className="hidden"
-                  />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading}
-                    className="shrink-0"
-                  >
-                    <Paperclip className="w-4 h-4" />
-                  </Button>
-                  <Input
-                    value={messageInput}
-                    onChange={(e) => setMessageInput(e.target.value)}
-                    placeholder="Écrivez votre message..."
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    disabled={isUploading}
-                    className="flex-1"
-                  />
-                  <Button 
-                    onClick={handleSendMessage}
-                    disabled={(!messageInput.trim() && attachments.length === 0) || isUploading}
-                    className="bg-[#0EA8A8] hover:bg-[#0c8e8e]"
-                  >
-                    {isUploading ? (
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Send className="w-4 h-4 mr-2" />
+
+                  {/* Zone de recherche d'ajout de membre */}
+                  {showAddMemberInput && (
+                    <div className="p-4 border-b border-gray-200 bg-gray-50 shrink-0">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input
+                          placeholder="Rechercher un utilisateur..."
+                          value={memberSearchQuery}
+                          onChange={(e) => setMemberSearchQuery(e.target.value)}
+                          className="pl-9"
+                          autoFocus
+                        />
+                      </div>
+                      <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
+                        {getAvailableUsers().map((user) => (
+                          <div
+                            key={user.id}
+                            className="flex items-center justify-between p-2 hover:bg-gray-100 rounded-lg cursor-pointer"
+                            onClick={() => handleAddMember(user)}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-[#1B2A4A] truncate">{user.name}</p>
+                              <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                            </div>
+                            <Button size="sm" variant="ghost" className="text-[#0EA8A8] shrink-0">
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
+                        {getAvailableUsers().length === 0 && memberSearchQuery && (
+                          <p className="text-sm text-gray-500 text-center py-2">
+                            Aucun utilisateur trouvé
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Liste des membres - prend tout l'espace restant */}
+                  <div className="flex-1 overflow-y-auto min-h-0">
+                    {selectedChannel.membersList.map((member) => (
+                      <div
+                        key={member.id}
+                        className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors border-b border-gray-100"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <Avatar className="w-10 h-10 shrink-0">
+                            <AvatarFallback className="bg-[#0EA8A8]/10 text-[#0EA8A8]">
+                              {member.name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-[#1B2A4A] truncate">{member.name}</p>
+                            <p className="text-xs text-gray-500 truncate">{member.email}</p>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              <Badge variant="outline" className="text-xs shrink-0">
+                                {member.role}
+                              </Badge>
+                              <span className="text-xs text-gray-400 truncate">
+                                Depuis le {new Date(member.joinedAt).toLocaleDateString('fr-FR')}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveMember(member)}
+                          className="text-gray-400 hover:text-red-500 shrink-0 ml-2"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+
+                    {selectedChannel.membersList.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        Aucun membre dans ce canal
+                      </div>
                     )}
-                    {isUploading ? "Envoi..." : "Envoyer"}
-                  </Button>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-400 mt-2">
-                  Messages envoyés en tant qu'Admin - Vous pouvez joindre des fichiers (images, PDF, documents)
-                </p>
-              </div>
+              )}
             </div>
           ) : (
             <div className="flex-1 flex items-center justify-center bg-[#F7F8FC]">
@@ -656,8 +933,43 @@ export default function AdminCommunication() {
           )}
         </div>
       </div>
+
+      {/* Dialogue de confirmation pour le retrait d'un membre */}
+      {showConfirmDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowConfirmDialog(false)} />
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-[#1B2A4A]">Confirmer le retrait</h3>
+            </div>
+            
+            <p className="text-gray-600 mb-2">
+              Êtes-vous sûr de vouloir retirer <strong className="text-[#1B2A4A]">{memberToRemove?.name}</strong> de ce canal ?
+            </p>
+            <p className="text-sm text-gray-500 mb-6">
+              Cette action est irréversible et le membre ne pourra plus voir les messages de ce canal.
+            </p>
+            
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowConfirmDialog(false)}
+              >
+                Annuler
+              </Button>
+              <Button
+                onClick={confirmRemoveMember}
+                className="bg-red-500 hover:bg-red-600"
+              >
+                Retirer le membre
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
-// Ajouter l'import manquant pour Download

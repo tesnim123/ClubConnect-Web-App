@@ -1,3 +1,4 @@
+// components/EventCard.tsx
 import { Event } from "../data/mockData";
 import { Card } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -9,9 +10,10 @@ import { fr } from "date-fns/locale";
 interface EventCardProps {
   event: Event;
   onRSVP?: () => void;
+  onClick?: () => void; // Ajouter onClick comme prop optionnelle
 }
 
-export function EventCard({ event, onRSVP }: EventCardProps) {
+export function EventCard({ event, onRSVP, onClick }: EventCardProps) {
   const statusColors = {
     open: "bg-green-500",
     full: "bg-red-500",
@@ -28,13 +30,32 @@ export function EventCard({ event, onRSVP }: EventCardProps) {
     rejected: "Refusé",
   };
 
+  const handleCardClick = () => {
+    if (onClick) {
+      onClick();
+    }
+  };
+
+  const handleButtonClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onRSVP) {
+      onRSVP();
+    }
+  };
+
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-all hover:-translate-y-1">
+    <Card 
+      className={`overflow-hidden hover:shadow-lg transition-all hover:-translate-y-1 ${onClick ? 'cursor-pointer' : ''}`}
+      onClick={handleCardClick}
+    >
       <div className="relative h-48">
         <img
           src={event.coverPhoto}
           alt={event.title}
           className="w-full h-full object-cover"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = "https://via.placeholder.com/400x200?text=Event";
+          }}
         />
         <Badge className={`absolute top-3 right-3 ${statusColors[event.status]}`}>
           {statusLabels[event.status]}
@@ -52,11 +73,14 @@ export function EventCard({ event, onRSVP }: EventCardProps) {
             src={event.clubLogo}
             alt={event.clubName}
             className="w-8 h-8 rounded"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "https://via.placeholder.com/32?text=Club";
+            }}
           />
           <span className="text-sm text-gray-600">{event.clubName}</span>
         </div>
 
-        <h3 className="font-bold text-lg text-[#1B2A4A] mb-3">{event.title}</h3>
+        <h3 className="font-bold text-lg text-[#1B2A4A] mb-3 line-clamp-2">{event.title}</h3>
 
         <div className="space-y-2 mb-4 text-sm text-gray-600">
           <div className="flex items-center gap-2">
@@ -69,7 +93,7 @@ export function EventCard({ event, onRSVP }: EventCardProps) {
           </div>
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4" />
-            <span>{event.location}</span>
+            <span className="line-clamp-1">{event.location}</span>
           </div>
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4" />
@@ -79,7 +103,7 @@ export function EventCard({ event, onRSVP }: EventCardProps) {
 
         {onRSVP && (
           <Button
-            onClick={onRSVP}
+            onClick={handleButtonClick}
             className="w-full bg-[#0EA8A8] hover:bg-[#0c8e8e]"
             disabled={event.status === 'full'}
           >

@@ -1,5 +1,5 @@
 // components/Sidebar.tsx
-import { Link, useLocation } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import {
   BarChart3,
   Building2,
@@ -12,24 +12,25 @@ import {
   Users,
   User,
   Bell,
-  FileText,
   PlusCircle,
-  ListChecks,
   UserPlus,
-  Hash
+  Hash,
+  Menu,
+  LogOut,
 } from "lucide-react";
 import { cn } from "../components/ui/utils";
 import { useState, useEffect } from "react";
 
 interface SidebarProps {
   role: "member" | "staff" | "president" | "admin";
-  collapsed?: boolean;
 }
 
-export function Sidebar({ role, collapsed = false }: SidebarProps) {
+export function Sidebar({ role }: SidebarProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [userId, setUserId] = useState("1");
-  
+  const [collapsed, setCollapsed] = useState(false);
+
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
@@ -39,6 +40,12 @@ export function Sidebar({ role, collapsed = false }: SidebarProps) {
       } catch (e) {}
     }
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
 
   const memberLinks = [
     { to: "/member/dashboard", icon: Home, label: "Accueil" },
@@ -102,48 +109,111 @@ export function Sidebar({ role, collapsed = false }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "bg-[#1B2A4A] text-white transition-all duration-300 flex flex-col",
+        "bg-[#1B2A4A] text-white flex flex-col relative flex-shrink-0",
+        "transition-[width] duration-300 ease-in-out",
         collapsed ? "w-16" : "w-60"
       )}
     >
-      <div className="p-4 border-b border-[#2D3E5F]">
-        <Link to="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#0EA8A8] flex items-center justify-center">
-            <span className="text-white font-bold text-xl">C</span>
-          </div>
-          {!collapsed && (
-            <div>
-              <h2 className="font-bold text-lg">ClubConnect</h2>
-              <p className="text-xs text-gray-400">Connectez. Créez.</p>
-            </div>
+      {/* Header: hamburger + logo (when expanded) */}
+      <div className=" flex items-center min-h-[64px] overflow-hidden min-h-[64px] px-3 gap-3 pb-3 pt-2 ">
+        <button
+  onClick={() => setCollapsed(!collapsed)}
+  className="w-8 h-8 rounded-md flex items-center ml-1 justify-center flex-shrink-0 text-gray-300 hover:text-white hover:bg-[#2D3E5F] transition-colors duration-200"
+  title={collapsed ? "Ouvrir le menu" : "Réduire le menu"}
+>
+  <Menu className="w-5 h-5" />
+</button>
+
+        {/* Logo icon + name — fades in when expanded */}
+        <div
+          className={cn(
+            "flex items-center gap-2 overflow-hidden transition-all duration-300 ease-in-out",
+            collapsed ? "max-w-0 opacity-0" : "max-w-[160px] opacity-100"
           )}
-        </Link>
+        >
+          <Link
+            to="/"
+            className="flex items-center gap-2"
+          >
+            <div className="w-7 h-7 rounded-lg bg-[#0EA8A8] flex items-center justify-center flex-shrink-0">
+              <span className="text-white font-bold text-sm">C</span>
+            </div>
+            <div>
+              <h2 className="font-bold text-sm leading-tight whitespace-nowrap">ClubConnect</h2>
+              <p className="text-xs text-gray-400 whitespace-nowrap">Connectez. Créez.</p>
+            </div>
+          </Link>
+        </div>
       </div>
 
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+      {/* Nav links */}
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto overflow-x-hidden">
         {links.map((link) => {
           const Icon = link.icon;
           const active = isActive(link.to);
           return (
-            <Link
-              key={link.to}
-              to={link.to}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group",
-                active ? "bg-[#0EA8A8] text-white" : "hover:bg-[#2D3E5F]"
-              )}
-            >
-              <Icon className="w-5 h-5 flex-shrink-0" />
-              {!collapsed && <span>{link.label}</span>}
-              {collapsed && (
-                <div className="absolute left-16 ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+            <div key={link.to} className="relative group">
+              <Link
+                to={link.to}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors duration-150",
+                  active ? "bg-[#0EA8A8] text-white" : "text-gray-300 hover:bg-[#2D3E5F] hover:text-white"
+                )}
+              >
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                {/* Label fades + slides */}
+                <span
+                  className={cn(
+                    "text-sm whitespace-nowrap transition-all duration-300 ease-in-out overflow-hidden",
+                    collapsed ? "max-w-0 opacity-0" : "max-w-[160px] opacity-100"
+                  )}
+                >
                   {link.label}
+                </span>
+              </Link>
+
+              {/* Tooltip when collapsed */}
+              {collapsed && (
+                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2 py-1 bg-gray-900 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-lg">
+                  {link.label}
+                  <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900" />
                 </div>
               )}
-            </Link>
+            </div>
           );
         })}
       </nav>
+
+      {/* Logout button */}
+      <div className="p-3 border-t border-[#2D3E5F]">
+        <div className="relative group">
+          <button
+            onClick={handleLogout}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors duration-150",
+              "text-red-400 hover:bg-red-500/10 hover:text-red-300"
+            )}
+          >
+            <LogOut className="w-5 h-5 flex-shrink-0" />
+            <span
+              className={cn(
+                "text-sm whitespace-nowrap font-medium transition-all duration-300 ease-in-out overflow-hidden",
+                collapsed ? "max-w-0 opacity-0" : "max-w-[160px] opacity-100"
+              )}
+            >
+              Déconnexion
+            </span>
+          </button>
+
+          {/* Tooltip when collapsed */}
+          {collapsed && (
+            <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-2 py-1 bg-gray-900 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-lg">
+              Déconnexion
+              <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900" />
+            </div>
+          )}
+        </div>
+      </div>
     </aside>
   );
 }

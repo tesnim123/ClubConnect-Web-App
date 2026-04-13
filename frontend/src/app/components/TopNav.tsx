@@ -212,21 +212,21 @@ export function TopNav({
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+    <header className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between">
       <div className="flex-1" />
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {/* Notifications Dropdown */}
-        <div className="relative" ref={notificationRef}>
+        <div className="relative"  ref={notificationRef}>
           <Button
             variant="ghost"
             size="sm"
-            className="relative"
+            className="relative mt-2 h-9 w-9 p-0"
             onClick={() => setIsNotificationOpen(!isNotificationOpen)}
           >
-            <Bell className="w-5 h-5" />
+            <Bell className="w-8 h-8" />
             {unreadCount > 0 && (
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-[#F5A623]">
-                {unreadCount}
+              <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center bg-[#F5A623] text-[10px]">
+                {unreadCount > 9 ? '9+' : unreadCount}
               </Badge>
             )}
           </Button>
@@ -234,7 +234,7 @@ export function TopNav({
           {isNotificationOpen && (
             <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-                <h3 className="font-semibold text-[#1B2A4A]">Notifications</h3>
+                <h3 className="font-semibold text-[#1B2A4A] text-sm">Notifications</h3>
                 {unreadCount > 0 && (
                   <button
                     onClick={handleMarkAllAsRead}
@@ -249,14 +249,14 @@ export function TopNav({
                 {notifications.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
                     <Bell className="w-12 h-12 text-gray-300 mb-2" />
-                    <p className="text-gray-500">Aucune notification</p>
+                    <p className="text-gray-500 text-sm">Aucune notification</p>
                   </div>
                 ) : (
                   notifications.map((notification) => (
                     <div
                       key={notification.id}
                       onClick={() => handleNotificationClick(notification)}
-                      className={`p-4 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
+                      className={`p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
                         !notification.isRead ? 'bg-blue-50' : ''
                       }`}
                     >
@@ -312,7 +312,7 @@ export function TopNav({
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center gap-3 hover:bg-gray-100 transition-colors rounded-lg px-2 py-1"
+            className="flex items-center gap-2 hover:bg-gray-100 transition-colors rounded-lg px-2 py-1"
           >
             <Avatar className="w-10 h-10">
               <AvatarImage 
@@ -323,20 +323,22 @@ export function TopNav({
                   e.currentTarget.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userName)}`;
                 }}
               />
-              
+              <AvatarFallback className="text-xs">
+                {getInitials(userName)}
+              </AvatarFallback>
             </Avatar>
             
             <div className="text-sm text-left">
-              <div className="font-semibold text-[#1B2A4A]">{userName}</div>
+              <div className="font-semibold text-[#1B2A4A] text-sm">{userName}</div>
               <div className="text-xs text-gray-500">{userRole}</div>
             </div>
-            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {isDropdownOpen && (
             <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-              <div className="px-4 py-3 border-b border-gray-100">
-                <div className="font-semibold text-[#1B2A4A]">{userName}</div>
+              <div className="px-4 py-2 border-b border-gray-100">
+                <div className="font-semibold text-[#1B2A4A] text-sm">{userName}</div>
                 <div className="text-xs text-gray-500">{userRole}</div>
               </div>
               
