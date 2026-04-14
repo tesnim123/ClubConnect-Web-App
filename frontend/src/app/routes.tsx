@@ -20,6 +20,15 @@ import EventRequestsList from "./pages/staff/EventRequestsList";
 import ChannelManagement from "./pages/staff/ChannelManagement";
 import StaffForum from "./pages/staff/Forum";
 import StaffProfile from "./pages/staff/Profile";
+import PresidentDashboard from "./pages/president/Dashboard";
+import PresidentMemberManagement from "./pages/president/MemberManagement";
+import PresidentEventRequestCreation from "./pages/president/EventRequestCreation";
+import PresidentEventRequestsList from "./pages/president/EventRequestsList";
+import PresidentChannelManagement from "./pages/president/ChannelManagement";
+import PresidentForum from "./pages/president/Forum";
+import PresidentProfile from "./pages/president/Profile";
+import PresidentSettings from "./pages/president/Settings";
+import PresidentNotifications from "./pages/president/Notifications";
 
 import AdminDashboard from "./pages/admin/Dashboard";
 import ClubsManagement from "./pages/admin/ClubsManagement";
@@ -51,15 +60,17 @@ export const router = createBrowserRouter([
       // Profile routes with role prefix and dynamic ID
       { path: "admin/profile/:id", Component: AdminProfile },
       { path: "staff/profile/:id", Component: StaffProfile },
-      { path: "president/profile/:id", Component: StaffProfile },
+      { path: "president/profile/:id", Component: PresidentProfile },
       { path: "member/profile/:id", Component: MemberProfile },
 
       // Settings routes with role prefix and dynamic ID
       { path: "admin/settings/:id", Component: AdminSettings },
+      { path: "president/settings/:id", Component: PresidentSettings },
       { path: ":role/settings/:id", Component: Settings },
 
       // Notifications routes with role prefix and dynamic ID
       { path: "admin/notifications/:id", Component: AdminNotifications },
+      { path: "president/notifications/:id", Component: PresidentNotifications },
       { path: ":role/notifications/:id", Component: Notifications },
 
       // Member routes
@@ -79,13 +90,13 @@ export const router = createBrowserRouter([
       { path: "staff/profile", Component: StaffProfile },
 
       // President routes
-      { path: "president/dashboard", Component: StaffDashboard },
-      { path: "president/members", Component: MemberManagement },
-      { path: "president/event/new", Component: EventRequestCreation },
-      { path: "president/events", Component: EventRequestsList },
-      { path: "president/channels", Component: ChannelManagement },
-      { path: "president/forum", Component: StaffForum },
-      { path: "president/profile", Component: StaffProfile },
+      { path: "president/dashboard", Component: PresidentDashboard },
+      { path: "president/members", Component: PresidentMemberManagement },
+      { path: "president/event/new", Component: PresidentEventRequestCreation },
+      { path: "president/events", Component: PresidentEventRequestsList },
+      { path: "president/channels", Component: PresidentChannelManagement },
+      { path: "president/forum", Component: PresidentForum },
+      { path: "president/profile", Component: PresidentProfile },
 
       // Admin routes
       { path: "admin/dashboard", Component: AdminDashboard },
