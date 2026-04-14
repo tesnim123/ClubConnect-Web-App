@@ -32,7 +32,6 @@ import CreateClub from "./pages/admin/Create_club";
 import ClubDetails from "./pages/admin/ClubDetails";
 
 import NotFound from "./pages/NotFound";
-import Profile from "./pages/member/Profile";
 import Settings from "./components/Settings";
 import Notifications from "./components/Notifications";
 import AdminProfile from "./pages/admin/ProfileAdmin";
@@ -51,21 +50,17 @@ export const router = createBrowserRouter([
 
       // Profile routes with role prefix and dynamic ID
       { path: "admin/profile/:id", Component: AdminProfile },
-      { path: "staff/profile/:id", Component: Profile },
-      { path: "president/profile/:id", Component: Profile },
-      { path: "member/profile/:id", Component: Profile },
+      { path: "staff/profile/:id", Component: StaffProfile },
+      { path: "president/profile/:id", Component: StaffProfile },
+      { path: "member/profile/:id", Component: MemberProfile },
 
       // Settings routes with role prefix and dynamic ID
       { path: "admin/settings/:id", Component: AdminSettings },
-      { path: "staff/settings/:id", Component: Settings },
-      { path: "president/settings/:id", Component: Settings },
-      { path: "member/settings/:id", Component: Settings },
+      { path: ":role/settings/:id", Component: Settings },
 
       // Notifications routes with role prefix and dynamic ID
       { path: "admin/notifications/:id", Component: AdminNotifications },
-      { path: "staff/notifications/:id", Component: Notifications },
-      { path: "president/notifications/:id", Component: Notifications },
-      { path: "member/notifications/:id", Component: Notifications },
+      { path: ":role/notifications/:id", Component: Notifications },
 
       // Member routes
       { path: "member/dashboard", Component: MemberDashboard },
