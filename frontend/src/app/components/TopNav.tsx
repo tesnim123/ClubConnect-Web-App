@@ -1,18 +1,33 @@
 // components/TopNav.tsx
-import { Bell, LogOut, User, Settings, ChevronDown, X, CheckCircle, AlertCircle, Calendar, MessageSquare, Users, FileText, Image, Paperclip } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
-import { Button } from "../components/ui/button";
-import { Badge } from "../components/ui/badge";
-import { useState, useRef, useEffect } from "react";
+import {
+  AlertCircle,
+  Bell,
+  Calendar,
+  CheckCircle,
+  ChevronDown,
+  FileText,
+  LogOut,
+  MessageSquare,
+  Settings,
+  User,
+  Users,
+  X,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
+import { useAuth } from "../context/AuthContext";
 import { currentUser } from "../data/mockData";
+import { getRoleSlug } from "../lib/auth";
+import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
 
 interface Notification {
   id: string;
   title: string;
   message: string;
-  type: 'info' | 'success' | 'warning' | 'event' | 'message' | 'member' | 'forum' | 'file';
+  type: "info" | "success" | "warning" | "event" | "message" | "member" | "forum" | "file";
   createdAt: string;
   isRead: boolean;
   link?: string;
@@ -25,7 +40,7 @@ interface TopNavProps {
   userName: string;
   userAvatar?: string | null;
   userRole?: string;
-  userRoleType?: 'admin' | 'staff' | 'president' | 'member' | 'vicepresident';
+  userRoleType?: "admin" | "staff" | "president" | "member" | "vicepresident";
   notificationCount?: number;
   onNotificationClick?: () => void;
   onLogout?: () => void;
@@ -38,12 +53,12 @@ interface TopNavProps {
 const defaultNotifications: Notification[] = [
   {
     id: "1",
-    title: "Nouvel événement",
-    message: "Le Hackathon 2024 a été approuvé",
+    title: "Nouvel evenement",
+    message: "Le Hackathon 2024 a ete approuve",
     type: "event",
     createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
     isRead: false,
-    link: "/events"
+    link: "/events",
   },
   {
     id: "2",
@@ -52,34 +67,34 @@ const defaultNotifications: Notification[] = [
     type: "member",
     createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
     isRead: false,
-    link: "/members"
+    link: "/members",
   },
   {
     id: "3",
-    title: "Fichier partagé",
-    message: "Jean a partagé un fichier dans le canal général",
+    title: "Fichier partage",
+    message: "Jean a partage un fichier dans le canal general",
     type: "file",
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
     isRead: false,
-    link: "/chat"
-  }
+    link: "/chat",
+  },
 ];
 
-export function TopNav({ 
+export function TopNav({
   userId = currentUser.id,
   userName = `${currentUser.firstName} ${currentUser.lastName}`,
   userAvatar = currentUser.avatar,
   userRole = currentUser.roleLabel || "Membre",
-  userRoleType = currentUser.role || "member",
   notificationCount: externalNotificationCount,
   onNotificationClick,
   onLogout,
   notifications: externalNotifications,
   onMarkAsRead,
   onMarkAllAsRead,
-  onDeleteNotification
+  onDeleteNotification,
 }: TopNavProps) {
   const navigate = useNavigate();
+  const { logout, user } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -87,6 +102,11 @@ export function TopNav({
   const [notifications, setNotifications] = useState<Notification[]>(
     externalNotifications || defaultNotifications
   );
+
+  const resolvedUserId = user?._id ?? userId;
+  const resolvedUserName = user?.name ?? userName;
+  const resolvedUserRole = user?.role ?? userRole;
+  const roleSlug = getRoleSlug(resolvedUserRole);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -97,80 +117,102 @@ export function TopNav({
         setIsNotificationOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleLogout = () => {
     setIsDropdownOpen(false);
+
     if (onLogout) {
       onLogout();
-    } else {
-      localStorage.removeItem('token');
-      toast.success("Déconnexion réussie");
-      navigate("/login");
+      return;
     }
+
+    logout();
+    toast.success("Deconnexion reussie");
+    navigate("/login");
   };
 
   const handleProfileClick = () => {
     setIsDropdownOpen(false);
-    navigate(`/${userRoleType}/profile/${userId}`);
+    navigate(`/${roleSlug}/profile/${resolvedUserId}`);
   };
 
   const handleSettingsClick = () => {
     setIsDropdownOpen(false);
-    navigate(`/${userRoleType}/settings/${userId}`);
+    navigate(`/${roleSlug}/settings/${resolvedUserId}`);
   };
 
   const handleNotificationClick = (notification: Notification) => {
     if (onMarkAsRead) {
       onMarkAsRead(notification.id);
     } else {
-      setNotifications(prev =>
-        prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n)
+      setNotifications((prev) =>
+        prev.map((item) => (item.id === notification.id ? { ...item, isRead: true } : item))
       );
     }
+
     if (notification.link) {
-      navigate(`/${userRoleType}${notification.link}`);
+      navigate(`/${roleSlug}${notification.link}`);
     }
+
     setIsNotificationOpen(false);
-    if (onNotificationClick) onNotificationClick();
+
+    if (onNotificationClick) {
+      onNotificationClick();
+    }
   };
 
   const handleMarkAllAsRead = () => {
     if (onMarkAllAsRead) {
       onMarkAllAsRead();
-    } else {
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-      toast.success("Toutes les notifications ont été marquées comme lues");
+      return;
     }
+
+    setNotifications((prev) => prev.map((item) => ({ ...item, isRead: true })));
+    toast.success("Toutes les notifications ont ete marquees comme lues");
   };
 
-  const handleDeleteNotification = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDeleteNotification = (id: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+
     if (onDeleteNotification) {
       onDeleteNotification(id);
-    } else {
-      setNotifications(prev => prev.filter(n => n.id !== id));
-      toast.success("Notification supprimée");
+      return;
     }
+
+    setNotifications((prev) => prev.filter((item) => item.id !== id));
+    toast.success("Notification supprimee");
   };
 
   const getUnreadCount = () => {
-    if (externalNotificationCount !== undefined) return externalNotificationCount;
-    return notifications.filter(n => !n.isRead).length;
+    if (externalNotificationCount !== undefined) {
+      return externalNotificationCount;
+    }
+
+    return notifications.filter((item) => !item.isRead).length;
   };
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'success': return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'warning': return <AlertCircle className="w-4 h-4 text-yellow-500" />;
-      case 'event': return <Calendar className="w-4 h-4 text-blue-500" />;
-      case 'message': return <MessageSquare className="w-4 h-4 text-purple-500" />;
-      case 'member': return <Users className="w-4 h-4 text-[#0EA8A8]" />;
-      case 'forum': return <MessageSquare className="w-4 h-4 text-indigo-500" />;
-      case 'file': return <FileText className="w-4 h-4 text-orange-500" />;
-      default: return <Bell className="w-4 h-4 text-gray-500" />;
+      case "success":
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case "warning":
+        return <AlertCircle className="h-4 w-4 text-yellow-500" />;
+      case "event":
+        return <Calendar className="h-4 w-4 text-blue-500" />;
+      case "message":
+        return <MessageSquare className="h-4 w-4 text-purple-500" />;
+      case "member":
+        return <Users className="h-4 w-4 text-[#0EA8A8]" />;
+      case "forum":
+        return <MessageSquare className="h-4 w-4 text-indigo-500" />;
+      case "file":
+        return <FileText className="h-4 w-4 text-orange-500" />;
+      default:
+        return <Bell className="h-4 w-4 text-gray-500" />;
     }
   };
 
@@ -182,63 +224,59 @@ export function TopNav({
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return "À l'instant";
+    if (diffMins < 1) return "A l'instant";
     if (diffMins < 60) return `Il y a ${diffMins} min`;
     if (diffHours < 24) return `Il y a ${diffHours} h`;
     if (diffDays === 1) return "Hier";
     if (diffDays < 7) return `Il y a ${diffDays} jours`;
-    return date.toLocaleDateString('fr-FR');
+    return date.toLocaleDateString("fr-FR");
   };
 
-  // Fonction pour obtenir les initiales du nom
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
+  const getInitials = (name: string) =>
+    name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
       .toUpperCase()
       .slice(0, 2);
-  };
 
   const unreadCount = getUnreadCount();
-  
-  // Gérer l'avatar avec fallback
+
   const getAvatarUrl = () => {
-    if (userAvatar && userAvatar !== 'null' && userAvatar !== 'undefined') {
+    if (userAvatar && userAvatar !== "null" && userAvatar !== "undefined") {
       return userAvatar;
     }
-    // Utiliser DiceBear comme fallback avec les initiales ou un seed basé sur le nom
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userName)}`;
+
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(resolvedUserName)}`;
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between">
+    <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2.5">
       <div className="flex-1" />
       <div className="flex items-center gap-3">
-        {/* Notifications Dropdown */}
-        <div className="relative"  ref={notificationRef}>
+        <div className="relative" ref={notificationRef}>
           <Button
             variant="ghost"
             size="sm"
             className="relative mt-2 h-9 w-9 p-0"
-            onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+            onClick={() => setIsNotificationOpen((prev) => !prev)}
           >
-            <Bell className="w-8 h-8" />
+            <Bell className="h-8 w-8" />
             {unreadCount > 0 && (
-              <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center bg-[#F5A623] text-[10px]">
-                {unreadCount > 9 ? '9+' : unreadCount}
+              <Badge className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center bg-[#F5A623] p-0 text-[10px]">
+                {unreadCount > 9 ? "9+" : unreadCount}
               </Badge>
             )}
           </Button>
 
           {isNotificationOpen && (
-            <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-                <h3 className="font-semibold text-[#1B2A4A] text-sm">Notifications</h3>
+            <div className="absolute right-0 z-50 mt-2 w-96 rounded-lg border border-gray-200 bg-white shadow-lg">
+              <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+                <h3 className="text-sm font-semibold text-[#1B2A4A]">Notifications</h3>
                 {unreadCount > 0 && (
                   <button
                     onClick={handleMarkAllAsRead}
-                    className="text-xs text-[#0EA8A8] hover:text-[#0c8e8e] transition-colors"
+                    className="text-xs text-[#0EA8A8] transition-colors hover:text-[#0c8e8e]"
                   >
                     Tout marquer comme lu
                   </button>
@@ -248,42 +286,34 @@ export function TopNav({
               <div className="max-h-96 overflow-y-auto">
                 {notifications.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <Bell className="w-12 h-12 text-gray-300 mb-2" />
-                    <p className="text-gray-500 text-sm">Aucune notification</p>
+                    <Bell className="mb-2 h-12 w-12 text-gray-300" />
+                    <p className="text-sm text-gray-500">Aucune notification</p>
                   </div>
                 ) : (
                   notifications.map((notification) => (
                     <div
                       key={notification.id}
                       onClick={() => handleNotificationClick(notification)}
-                      className={`p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors ${
-                        !notification.isRead ? 'bg-blue-50' : ''
+                      className={`cursor-pointer border-b border-gray-100 p-3 transition-colors hover:bg-gray-50 ${
+                        !notification.isRead ? "bg-blue-50" : ""
                       }`}
                     >
                       <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 mt-0.5">
-                          {getNotificationIcon(notification.type)}
-                        </div>
-                        <div className="flex-1 min-w-0">
+                        <div className="mt-0.5 flex-shrink-0">{getNotificationIcon(notification.type)}</div>
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-2">
                             <div>
-                              <p className="text-sm font-medium text-[#1B2A4A]">
-                                {notification.title}
-                              </p>
-                              <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                                {notification.message}
-                              </p>
+                              <p className="text-sm font-medium text-[#1B2A4A]">{notification.title}</p>
+                              <p className="mt-1 line-clamp-2 text-xs text-gray-600">{notification.message}</p>
                             </div>
                             <button
-                              onClick={(e) => handleDeleteNotification(notification.id, e)}
+                              onClick={(event) => handleDeleteNotification(notification.id, event)}
                               className="flex-shrink-0 text-gray-400 hover:text-red-500"
                             >
-                              <X className="w-3 h-3" />
+                              <X className="h-3 w-3" />
                             </button>
                           </div>
-                          <p className="text-xs text-gray-400 mt-2">
-                            {formatDate(notification.createdAt)}
-                          </p>
+                          <p className="mt-2 text-xs text-gray-400">{formatDate(notification.createdAt)}</p>
                         </div>
                       </div>
                     </div>
@@ -292,11 +322,11 @@ export function TopNav({
               </div>
 
               {notifications.length > 0 && (
-                <div className="px-4 py-2 border-t border-gray-200">
+                <div className="border-t border-gray-200 px-4 py-2">
                   <button
                     onClick={() => {
                       setIsNotificationOpen(false);
-                      navigate(`/${userRoleType}/notifications/${userId}`);
+                      navigate(`/${roleSlug}/notifications/${resolvedUserId}`);
                     }}
                     className="w-full text-center text-xs text-[#0EA8A8] hover:text-[#0c8e8e]"
                   >
@@ -308,64 +338,64 @@ export function TopNav({
           )}
         </div>
 
-        {/* User Menu Dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center gap-2 hover:bg-gray-100 transition-colors rounded-lg px-2 py-1"
+            onClick={() => setIsDropdownOpen((prev) => !prev)}
+            className="flex items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-gray-100"
           >
-            <Avatar className="w-10 h-10">
-              <AvatarImage 
-                src={getAvatarUrl()} 
-                alt={userName}
-                onError={(e) => {
-                  // Fallback en cas d'erreur de chargement
-                  e.currentTarget.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userName)}`;
+            <Avatar className="h-10 w-10">
+              <AvatarImage
+                src={getAvatarUrl()}
+                alt={resolvedUserName}
+                onError={(event) => {
+                  event.currentTarget.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(
+                    resolvedUserName
+                  )}`;
                 }}
               />
-              <AvatarFallback className="text-xs">
-                {getInitials(userName)}
-              </AvatarFallback>
+              <AvatarFallback className="text-xs">{getInitials(resolvedUserName)}</AvatarFallback>
             </Avatar>
-            
-            <div className="text-sm text-left">
-              <div className="font-semibold text-[#1B2A4A] text-sm">{userName}</div>
-              <div className="text-xs text-gray-500">{userRole}</div>
+
+            <div className="text-left text-sm">
+              <div className="text-sm font-semibold text-[#1B2A4A]">{resolvedUserName}</div>
+              <div className="text-xs text-gray-500">{resolvedUserRole}</div>
             </div>
-            <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown
+              className={`h-3 w-3 text-gray-400 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
+            />
           </button>
 
           {isDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-              <div className="px-4 py-2 border-b border-gray-100">
-                <div className="font-semibold text-[#1B2A4A] text-sm">{userName}</div>
-                <div className="text-xs text-gray-500">{userRole}</div>
+            <div className="absolute right-0 z-50 mt-2 w-56 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+              <div className="border-b border-gray-100 px-4 py-2">
+                <div className="text-sm font-semibold text-[#1B2A4A]">{resolvedUserName}</div>
+                <div className="text-xs text-gray-500">{resolvedUserRole}</div>
               </div>
-              
+
               <button
                 onClick={handleProfileClick}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm hover:bg-gray-50"
               >
-                <User className="w-4 h-4 text-gray-500" />
+                <User className="h-4 w-4 text-gray-500" />
                 <span>Mon profil</span>
               </button>
-              
+
               <button
                 onClick={handleSettingsClick}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm hover:bg-gray-50"
               >
-                <Settings className="w-4 h-4 text-gray-500" />
-                <span>Paramètres</span>
+                <Settings className="h-4 w-4 text-gray-500" />
+                <span>Parametres</span>
               </button>
-              
-              <div className="border-t border-gray-100 my-1" />
-              
+
+              <div className="my-1 border-t border-gray-100" />
+
               <button
                 onClick={handleLogout}
-                className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
+                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
               >
-                <LogOut className="w-4 h-4" />
-                <span>Déconnexion</span>
+                <LogOut className="h-4 w-4" />
+                <span>Deconnexion</span>
               </button>
             </div>
           )}

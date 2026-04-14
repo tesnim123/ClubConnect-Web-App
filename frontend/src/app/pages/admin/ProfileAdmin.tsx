@@ -15,8 +15,10 @@ import {
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
+import { useAuth } from "../../context/AuthContext";
 
 export default function AdminProfile() {
+  const { user: authUser } = useAuth();
   const adminUser = {
     id: "1",
     firstName: "Alex",
@@ -48,22 +50,27 @@ export default function AdminProfile() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser);
-        setUser(parsed);
-        setEditedUser(parsed);
-      } catch (e) {}
+    if (!authUser) {
+      return;
     }
-  }, []);
+
+    const [firstName = "Admin", ...rest] = authUser.name.split(" ");
+    const nextUser = {
+      ...adminUser,
+      id: authUser._id,
+      firstName,
+      lastName: rest.join(" ") || "User",
+      email: authUser.email,
+    };
+
+    setUser(nextUser);
+    setEditedUser(nextUser);
+  }, [authUser]);
 
   const handleSave = () => {
     setUser(editedUser);
-    localStorage.setItem("user", JSON.stringify(editedUser));
     setIsEditing(false);
     toast.success("Profil mis à jour avec succès");
-    window.dispatchEvent(new Event('userUpdated'));
   };
 
   const handleCancel = () => {
@@ -94,8 +101,8 @@ export default function AdminProfile() {
       <Sidebar role="admin" />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopNav 
-          userId="1"
-          userName={"Admin User"}
+          userId={authUser?._id ?? user.id}
+          userName={authUser?.name ?? `${user.firstName} ${user.lastName}`}
           userAvatar={user.avatar}
           userRole="Administrateur"
           userRoleType="admin"

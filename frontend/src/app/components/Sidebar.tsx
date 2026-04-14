@@ -19,7 +19,8 @@ import {
   LogOut,
 } from "lucide-react";
 import { cn } from "../components/ui/utils";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
 interface SidebarProps {
   role: "member" | "staff" | "president" | "admin";
@@ -28,22 +29,12 @@ interface SidebarProps {
 export function Sidebar({ role }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const [userId, setUserId] = useState("1");
   const [collapsed, setCollapsed] = useState(false);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        const user = JSON.parse(storedUser);
-        setUserId(user.id || "1");
-      } catch (e) {}
-    }
-  }, []);
+  const { logout, user } = useAuth();
+  const userId = user?._id ?? "me";
 
   const handleLogout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
+    logout();
     navigate("/login");
   };
 

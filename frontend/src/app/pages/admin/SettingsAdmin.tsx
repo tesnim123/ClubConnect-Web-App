@@ -18,6 +18,7 @@ import {
   Volume2
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "../../context/AuthContext";
 
 // Données admin mock
 const currentAdmin = {
@@ -35,6 +36,7 @@ const currentAdmin = {
 
 export default function AdminSettings() {
   const navigate = useNavigate();
+  const { logout, user } = useAuth();
   const [admin, setAdmin] = useState(currentAdmin);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ current: "", new: "", confirm: "" });
@@ -97,13 +99,19 @@ export default function AdminSettings() {
   });
 
   useEffect(() => {
-    const storedAdmin = localStorage.getItem("admin");
-    if (storedAdmin) {
-      try {
-        setAdmin(JSON.parse(storedAdmin));
-      } catch (e) {}
+    if (!user) {
+      return;
     }
-  }, []);
+
+    const [firstName = "Admin", ...rest] = user.name.split(" ");
+    setAdmin((prev) => ({
+      ...prev,
+      id: user._id,
+      firstName,
+      lastName: rest.join(" ") || "User",
+      email: user.email,
+    }));
+  }, [user]);
 
   const handleSaveNotifications = () => {
     toast.success("Préférences de notifications enregistrées");
@@ -168,8 +176,7 @@ export default function AdminSettings() {
     }
     setIsDeleting(true);
     setTimeout(() => {
-      localStorage.removeItem('token');
-      localStorage.removeItem('admin');
+      logout();
       toast.error("Compte administrateur supprimé");
       navigate("/login");
     }, 2000);
@@ -208,8 +215,8 @@ export default function AdminSettings() {
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopNav 
-          userId={admin.id}
-          userName={`${admin.firstName} ${admin.lastName}`}
+          userId={user?._id ?? admin.id}
+          userName={user?.name ?? `${admin.firstName} ${admin.lastName}`}
           userRole={admin.roleLabel}
           userRoleType="admin"
           notificationCount={5}

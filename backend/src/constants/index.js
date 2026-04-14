@@ -1,0 +1,12 @@
+export const ROLES = {
+  ADMIN: "ADMIN",
+  STAFF: "STAFF",
+  PRESIDENT: "PRESIDENT",
+  MEMBER: "MEMBER",
+};
+
+export const STATUSES = {
+  PENDING: "PENDING",
+  ACCEPTED: "ACCEPTED",
+  REJECTED: "REJECTED",
+};

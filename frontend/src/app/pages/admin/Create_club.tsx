@@ -1,115 +1,136 @@
-// pages/admin/CreateClub.tsx
+import { ArrowLeft, Plus, X } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router";
+import { toast } from "sonner";
 import { Sidebar } from "../../components/Sidebar";
 import { TopNav } from "../../components/TopNav";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { Upload, X, ArrowLeft } from "lucide-react";
-import { useState } from "react";
-import { useNavigate } from "react-router";
-import { toast } from "sonner";
+import { useAuth } from "../../context/AuthContext";
+import { apiRequest, ApiClientError } from "../../lib/api";
+import type { StaffTitle } from "../../types/club";
 
-interface StaffMember {
+type StaffMemberForm = {
   id: string;
   email: string;
-  fullName: string;
-  role: string;
-}
+  name: string;
+  staffTitle: StaffTitle;
+};
+
+const STAFF_OPTIONS: Array<{ value: StaffTitle; label: string }> = [
+  { value: "PRESIDENT", label: "President" },
+  { value: "VICE_PRESIDENT", label: "Vice President" },
+  { value: "SECRETARY", label: "Secretaire" },
+  { value: "TREASURER", label: "Tresorier" },
+  { value: "HR", label: "RH" },
+  { value: "PROJECT_MANAGER", label: "Project Manager" },
+  { value: "SPONSO_MANAGER", label: "Sponso Manager" },
+  { value: "LOGISTIC_MANAGER", label: "Logistic Manager" },
+];
 
 export default function CreateClub() {
   const navigate = useNavigate();
+  const { token, user } = useAuth();
   const [clubName, setClubName] = useState("");
   const [description, setDescription] = useState("");
-  const [image, setImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState("");
-  const [staffMembers, setStaffMembers] = useState<StaffMember[]>([
-    { id: "1", email: "", fullName: "", role: "President" }
+  const [staffMembers, setStaffMembers] = useState<StaffMemberForm[]>([
+    { id: "1", email: "", name: "", staffTitle: "PRESIDENT" },
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   const addStaffMember = () => {
-    setStaffMembers([
-      ...staffMembers,
-      { id: Date.now().toString(), email: "", fullName: "", role: "Member" }
+    const usedTitles = new Set(staffMembers.map((member) => member.staffTitle));
+    const nextTitle = STAFF_OPTIONS.find((option) => !usedTitles.has(option.value))?.value;
+
+    if (!nextTitle) {
+      toast.error("Tous les postes principaux sont deja ajoutes");
+      return;
+    }
+
+    setStaffMembers((prev) => [
+      ...prev,
+      { id: Date.now().toString(), email: "", name: "", staffTitle: nextTitle },
     ]);
   };
 
   const removeStaffMember = (id: string) => {
-    if (staffMembers.length > 1) {
-      setStaffMembers(staffMembers.filter(member => member.id !== id));
-    }
-  };
-
-  const updateStaffMember = (id: string, field: keyof StaffMember, value: string) => {
-    setStaffMembers(staffMembers.map(member =>
-      member.id === id ? { ...member, [field]: value } : member
-    ));
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    
-    if (!clubName.trim()) {
-      setError("Le nom du club est requis");
+    if (staffMembers.length === 1) {
       return;
     }
-    
-    if (!description.trim()) {
-      setError("La description est requise");
-      return;
-    }
-    
-    const invalidStaff = staffMembers.some(member => 
-      !member.email.trim() || !member.fullName.trim() || !member.role.trim()
+
+    setStaffMembers((prev) => prev.filter((member) => member.id !== id));
+  };
+
+  const updateStaffMember = (id: string, field: keyof StaffMemberForm, value: string) => {
+    setStaffMembers((prev) =>
+      prev.map((member) => (member.id === id ? { ...member, [field]: value } : member))
     );
-    
+  };
+
+  const validateForm = () => {
+    if (!clubName.trim()) {
+      return "Le nom du club est requis";
+    }
+
+    if (!description.trim()) {
+      return "La description est requise";
+    }
+
+    const invalidStaff = staffMembers.some(
+      (member) => !member.email.trim() || !member.name.trim() || !member.staffTitle
+    );
     if (invalidStaff) {
-      setError("Tous les champs des membres du staff sont requis");
+      return "Tous les champs du staff sont requis";
+    }
+
+    const presidentCount = staffMembers.filter((member) => member.staffTitle === "PRESIDENT").length;
+    if (presidentCount !== 1) {
+      return "Un seul President est obligatoire";
+    }
+
+    return "";
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const validationError = validateForm();
+    setError(validationError);
+
+    if (validationError) {
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const formData = new FormData();
-      formData.append("name", clubName);
-      formData.append("description", description);
-      if (image) {
-        formData.append("image", image);
-      }
-      formData.append("staffMembers", JSON.stringify(staffMembers));
+      const response = await apiRequest<{
+        message: string;
+        generatedPasswords?: Array<{ email: string; staffTitle: StaffTitle; password: string }>;
+      }>("/admin/clubs", {
+        method: "POST",
+        token,
+        body: JSON.stringify({
+          name: clubName,
+          description,
+          staffMembers: staffMembers.map((member) => ({
+            name: member.name,
+            email: member.email,
+            staffTitle: member.staffTitle,
+          })),
+        }),
+      });
 
-      // Ici, vous ferez l'appel API pour créer le club
-      // Exemple: await api.post('/clubs', formData)
-      console.log("Création du club:", Object.fromEntries(formData));
-      
-      // Simuler un délai d'envoi
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast.success("Club créé avec succès !", {
-        description: "Les membres du staff ont reçu leurs identifiants par email.",
+      toast.success("Club cree avec succes", {
+        description: response.generatedPasswords?.length
+          ? "Les comptes staff ont ete crees et les emails ont ete declenches."
+          : response.message,
       });
-      
-      // Rediriger vers la page de gestion des clubs
       navigate("/admin/clubs");
-    } catch (err: any) {
-      setError(err.message || "Une erreur est survenue");
-      toast.error("Erreur", {
-        description: err.message || "Une erreur est survenue lors de la création du club",
-      });
+    } catch (err) {
+      const message = err instanceof ApiClientError ? err.message : "Une erreur est survenue";
+      setError(message);
+      toast.error("Creation impossible", { description: message });
     } finally {
       setIsLoading(false);
     }
@@ -118,164 +139,124 @@ export default function CreateClub() {
   return (
     <div className="flex h-screen">
       <Sidebar role="admin" />
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <TopNav 
-  userId="1"
-  userName="Admin User"
-  userRole="Administrateur"
-  userRoleType="admin"
-  notificationCount={5}
-/>
+
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <TopNav
+          userId={user?._id}
+          userName={user?.name ?? "Admin User"}
+          userRole="Administrateur"
+          userRoleType="admin"
+          notificationCount={5}
+        />
 
         <main className="flex-1 overflow-y-auto bg-[#F7F8FC] p-6">
           <div className="mb-6">
             <button
               onClick={() => navigate("/admin/clubs")}
-              className="flex items-center gap-2 text-gray-600 hover:text-[#0EA8A8] transition-colors mb-4"
+              className="mb-4 flex items-center gap-2 text-gray-600 transition-colors hover:text-[#0EA8A8]"
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Retour à la gestion des clubs</span>
+              <ArrowLeft className="h-4 w-4" />
+              <span>Retour a la gestion des clubs</span>
             </button>
-            
+
             <div>
-              <h1 className="text-3xl font-bold text-[#1B2A4A] mb-2">Créer un nouveau club</h1>
-              <p className="text-gray-600">Remplissez les informations ci-dessous pour créer un nouveau club universitaire</p>
+              <h1 className="mb-2 text-3xl font-bold text-[#1B2A4A]">Creer un nouveau club</h1>
+              <p className="text-gray-600">
+                Le club sera enregistre dans la base et chaque responsable recevra son acces par email.
+              </p>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+            <form onSubmit={handleSubmit} className="space-y-6 p-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700">
                   Nom du club <span className="text-red-500">*</span>
                 </label>
                 <Input
                   value={clubName}
-                  onChange={(e) => setClubName(e.target.value)}
+                  onChange={(event) => setClubName(event.target.value)}
                   placeholder="Entrez le nom du club"
                   className="w-full"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700">
                   Description <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Décrivez le club, ses objectifs et activités"
+                  onChange={(event) => setDescription(event.target.value)}
+                  placeholder="Decrivez le club, ses objectifs et activites"
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0EA8A8] focus:border-transparent"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#0EA8A8]"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Image du club
-                </label>
-                <div className="flex items-center gap-4">
-                  {imagePreview ? (
-                    <div className="relative">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="w-24 h-24 object-cover rounded-lg border border-gray-200"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setImage(null);
-                          setImagePreview("");
-                        }}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-[#0EA8A8] transition-colors">
-                      <Upload className="w-6 h-6 text-gray-400" />
-                      <span className="text-xs text-gray-500 mt-1">Upload</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-3">
+                <div className="mb-3 flex items-center justify-between">
                   <label className="block text-sm font-medium text-gray-700">
-                    Membres du staff <span className="text-red-500">*</span>
+                    Staff principal <span className="text-red-500">*</span>
                   </label>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={addStaffMember}
-                    className="text-[#0EA8A8] border-[#0EA8A8] hover:bg-[#0EA8A8] hover:text-white"
+                    className="border-[#0EA8A8] text-[#0EA8A8] hover:bg-[#0EA8A8] hover:text-white"
                   >
-                    <Upload className="w-4 h-4 mr-1" />
-                    Ajouter un membre
+                    <Plus className="mr-1 h-4 w-4" />
+                    Ajouter un poste
                   </Button>
                 </div>
 
                 <div className="space-y-3">
                   {staffMembers.map((member) => (
-                    <div key={member.id} className="p-4 border border-gray-200 rounded-lg relative bg-gray-50">
+                    <div key={member.id} className="relative rounded-lg border border-gray-200 bg-gray-50 p-4">
                       {staffMembers.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeStaffMember(member.id)}
-                          className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                          className="absolute right-2 top-2 text-red-500 hover:text-red-700"
                         >
-                          <X className="w-4 h-4" />
+                          <X className="h-4 w-4" />
                         </button>
                       )}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                         <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">
-                            Nom complet
-                          </label>
+                          <label className="mb-1 block text-xs font-medium text-gray-600">Nom complet</label>
                           <Input
-                            value={member.fullName}
-                            onChange={(e) => updateStaffMember(member.id, "fullName", e.target.value)}
-                            placeholder="Jean Dupont"
+                            value={member.name}
+                            onChange={(event) => updateStaffMember(member.id, "name", event.target.value)}
+                            placeholder="Nom et prenom"
                             className="w-full"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">
-                            Email
-                          </label>
+                          <label className="mb-1 block text-xs font-medium text-gray-600">Email</label>
                           <Input
                             type="email"
                             value={member.email}
-                            onChange={(e) => updateStaffMember(member.id, "email", e.target.value)}
-                            placeholder="jean@example.com"
+                            onChange={(event) => updateStaffMember(member.id, "email", event.target.value)}
+                            placeholder="responsable@fst.utm.tn"
                             className="w-full"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">
-                            Rôle
-                          </label>
+                          <label className="mb-1 block text-xs font-medium text-gray-600">Poste</label>
                           <select
-                            value={member.role}
-                            onChange={(e) => updateStaffMember(member.id, "role", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0EA8A8] focus:border-transparent bg-white"
+                            value={member.staffTitle}
+                            onChange={(event) =>
+                              updateStaffMember(member.id, "staffTitle", event.target.value as StaffTitle)
+                            }
+                            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#0EA8A8]"
                           >
-                            <option value="President">Président</option>
-                            <option value="Vice President">Vice-président</option>
-                            <option value="Secretary">Secrétaire</option>
-                            <option value="Treasurer">Trésorier</option>
-                            
+                            {STAFF_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
                           </select>
                         </div>
                       </div>
@@ -285,26 +266,17 @@ export default function CreateClub() {
               </div>
 
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
+                <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                   {error}
                 </div>
               )}
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => navigate("/admin/clubs")}
-                  className="px-4"
-                >
+              <div className="flex justify-end gap-3 border-t border-gray-200 pt-4">
+                <Button type="button" variant="outline" onClick={() => navigate("/admin/clubs")} className="px-4">
                   Annuler
                 </Button>
-                <Button 
-                  type="submit" 
-                  disabled={isLoading} 
-                  className="bg-[#0EA8A8] hover:bg-[#0c8e8e] px-6"
-                >
-                  {isLoading ? "Création en cours..." : "Créer le club"}
+                <Button type="submit" disabled={isLoading} className="bg-[#0EA8A8] px-6 hover:bg-[#0c8e8e]">
+                  {isLoading ? "Creation en cours..." : "Creer le club"}
                 </Button>
               </div>
             </form>

@@ -15,9 +15,11 @@ import {
   Settings, Shield, Flag, Mail, Send, Ban, UserCheck
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "../../context/AuthContext";
 
 export default function AdminNotifications() {
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
   const [user, setUser] = useState(currentUser);
   const [notifications, setNotifications] = useState<NotificationType[]>(mockNotifications);
   const [searchQuery, setSearchQuery] = useState("");
@@ -29,24 +31,19 @@ export default function AdminNotifications() {
   const [showBulkActions, setShowBulkActions] = useState(false);
 
   useEffect(() => {
-    const loadUser = () => {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        try {
-          setUser(JSON.parse(storedUser));
-        } catch (e) {}
-      }
-    };
-    
-    loadUser();
-    
-    const handleUserUpdated = () => {
-      loadUser();
-    };
-    
-    window.addEventListener('userUpdated', handleUserUpdated);
-    return () => window.removeEventListener('userUpdated', handleUserUpdated);
-  }, []);
+    if (!authUser) {
+      return;
+    }
+
+    const [firstName = "Admin", ...rest] = authUser.name.split(" ");
+    setUser((prev) => ({
+      ...prev,
+      id: authUser._id,
+      firstName,
+      lastName: rest.join(" ") || "User",
+      email: authUser.email,
+    }));
+  }, [authUser]);
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -201,8 +198,8 @@ export default function AdminNotifications() {
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopNav 
-          userId="1"
-          userName={"Admin User"}
+          userId={authUser?._id ?? user.id}
+          userName={authUser?.name ?? `${user.firstName} ${user.lastName}`}
           userAvatar={user.avatar}
           userRole={ "Administrateur"}
           userRoleType={"admin"}

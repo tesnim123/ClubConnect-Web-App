@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
+import { toast } from "sonner";
 import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
-import { Card } from "../components/ui/card";
 import {
   Select,
   SelectContent,
@@ -11,10 +12,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
-import { clubs } from "../data/mockData";
+import { useAuth } from "../context/AuthContext";
+import { apiRequest, ApiClientError } from "../lib/api";
+import type { ClubSummary } from "../types/auth";
 
 export default function Signup() {
   const navigate = useNavigate();
+  const { registerMember } = useAuth();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -23,11 +27,49 @@ export default function Signup() {
     confirmPassword: "",
     clubId: "",
   });
+  const [clubs, setClubs] = useState<ClubSummary[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const loadClubs = async () => {
+      try {
+        const response = await apiRequest<{ items: ClubSummary[] }>("/clubs", {
+          method: "GET",
+        });
+        setClubs(response.items);
+      } catch (_error) {
+        toast.error("Impossible de charger la liste des clubs");
+      }
+    };
+
+    void loadClubs();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock signup - redirect to pending approval
-    navigate("/pending");
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Les mots de passe ne correspondent pas");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await registerMember({
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        email: formData.email,
+        password: formData.password,
+        clubId: formData.clubId,
+      });
+      toast.success("Demande envoyée. En attente de validation.");
+      navigate("/pending");
+    } catch (error) {
+      const message = error instanceof ApiClientError ? error.message : "Inscription impossible";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -66,11 +108,11 @@ export default function Signup() {
           </div>
 
           <div>
-            <Label htmlFor="email">Email universitaire</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
-              placeholder="votre.nom@university.edu"
+              placeholder="votre.email@clubconnect.com"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
@@ -113,7 +155,7 @@ export default function Signup() {
               </SelectTrigger>
               <SelectContent>
                 {clubs.map((club) => (
-                  <SelectItem key={club.id} value={club.id}>
+                  <SelectItem key={club._id} value={club._id}>
                     {club.name}
                   </SelectItem>
                 ))}
@@ -122,15 +164,22 @@ export default function Signup() {
           </div>
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-            <p>Votre demande sera examinée par le staff du club sélectionné. Vous recevrez une notification une fois approuvée.</p>
+            <p>
+              Votre demande sera examinée par le président du club sélectionné. Vous pourrez vous
+              connecter après acceptation.
+            </p>
           </div>
 
-          <Button type="submit" className="w-full bg-[#0EA8A8] hover:bg-[#0c8e8e]">
-            S'inscrire
+          <Button
+            type="submit"
+            className="w-full bg-[#0EA8A8] hover:bg-[#0c8e8e]"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Inscription..." : "S'inscrire"}
           </Button>
 
           <p className="text-center text-sm text-gray-600 mt-4">
-            Déjà un compte?{" "}
+            Déjà un compte ?{" "}
             <Link to="/login" className="text-[#0EA8A8] hover:underline font-semibold">
               Se connecter
             </Link>
