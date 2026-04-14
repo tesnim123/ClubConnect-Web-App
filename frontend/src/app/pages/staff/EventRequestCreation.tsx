@@ -32,13 +32,14 @@ export default function EventRequestCreation() {
     startTime: "",
     endDate: "",
     endTime: "",
-    location: "",
+    department: "",
+    room: "",
     capacity: "",
     equipment: "",
   });
 
   const handleSubmit = () => {
-    if (!form.title || !form.startDate || !form.startTime || !form.endDate || !form.endTime || !form.location) {
+    if (!form.title || !form.startDate || !form.startTime || !form.endDate || !form.endTime || !form.department || !form.room) {
       toast.error("Veuillez remplir les champs principaux.");
       return;
     }
@@ -53,7 +54,8 @@ export default function EventRequestCreation() {
       startTime: "",
       endDate: "",
       endTime: "",
-      location: "",
+      department: "",
+      room: "",
       capacity: "",
       equipment: "",
     });
@@ -164,12 +166,22 @@ export default function EventRequestCreation() {
                   />
                 </div>
 
-                <div className="md:col-span-2">
-                  <label className="text-sm font-medium text-[#1B2A4A]">Lieu</label>
+                <div>
+                  <label className="text-sm font-medium text-[#1B2A4A]">Departement</label>
                   <Input
-                    value={form.location}
-                    onChange={(event) => setForm((prev) => ({ ...prev, location: event.target.value }))}
-                    placeholder="Salle, labo ou amphitheatre"
+                    value={form.department}
+                    onChange={(event) => setForm((prev) => ({ ...prev, department: event.target.value }))}
+                    placeholder="Ex: Informatique"
+                    className="mt-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-[#1B2A4A]">Salle</label>
+                  <Input
+                    value={form.room}
+                    onChange={(event) => setForm((prev) => ({ ...prev, room: event.target.value }))}
+                    placeholder="Ex: Salle B12"
                     className="mt-2"
                   />
                 </div>
