@@ -377,8 +377,8 @@ export default function Notifications() {
                       }}
                     >
                       <div className={`h-1 w-full ${!notification.isRead ? "bg-[#0EA8A8]" : "bg-slate-100"}`} />
-                      <div className="flex items-start gap-4 p-5">
-                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-[#eef6ff]">
+                      <div className="flex items-start gap-3 p-4">
+                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-[#eef6ff]">
                           {getNotificationIcon(notification.type)}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -389,7 +389,7 @@ export default function Notifications() {
                                 <Badge className={badge.className}>{badge.label}</Badge>
                                 {!notification.isRead && <Badge className="bg-[#0EA8A8] text-white">Nouveau</Badge>}
                               </div>
-                              <p className="mb-3 text-sm leading-6 text-gray-600">{notification.message}</p>
+                              <p className="mb-2 text-sm leading-5 text-gray-600">{notification.message}</p>
                               <div className="flex items-center gap-3 text-xs text-gray-400">
                                 <div className="flex items-center gap-1">
                                   <Clock className="w-3 h-3" />
