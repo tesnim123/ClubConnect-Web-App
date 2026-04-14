@@ -4,7 +4,7 @@ import { TopNav } from "../../components/TopNav";
 import { Card } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { Download } from "lucide-react";
+import { BellOff, Download } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar";
 import { 
@@ -40,6 +40,12 @@ import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import EmojiPicker from 'emoji-picker-react';
 
+interface Reaction {
+  emoji: string;
+  count: number;
+  userIds: string[];
+}
+
 interface Message {
   id: string;
   senderId: string;
@@ -50,6 +56,13 @@ interface Message {
   isRead: boolean;
   isAdmin: boolean;
   attachments?: Attachment[];
+  reactions?: Reaction[];
+  replyTo?: {
+    id: string;
+    senderName: string;
+    content: string;
+  };
+  deleted?: boolean;
 }
 
 interface Attachment {
@@ -319,6 +332,15 @@ export default function AdminCommunication() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const [isMuted, setIsMuted] = useState(false);
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
+  const [reactionPickerMessageId, setReactionPickerMessageId] = useState<string | null>(null);
+  const [deleteConfirmMessageId, setDeleteConfirmMessageId] = useState<string | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const reactionPickerRef = useRef<HTMLDivElement>(null);
+
+  const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🔥'];
 
   // Fermer le sélecteur d'emojis quand on clique en dehors
   useEffect(() => {
@@ -326,11 +348,19 @@ export default function AdminCommunication() {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
         setShowEmojiPicker(false);
       }
+      if (reactionPickerRef.current && !reactionPickerRef.current.contains(event.target as Node)) {
+        setReactionPickerMessageId(null);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, selectedChannel]);
 
   // Catégories de canaux (sans les vice-présidents)
   const channelCategories = [
@@ -397,7 +427,12 @@ export default function AdminCommunication() {
         timestamp: new Date().toISOString(),
         isRead: true,
         isAdmin: true,
-        attachments: newAttachments.length > 0 ? newAttachments : undefined
+        attachments: newAttachments.length > 0 ? newAttachments : undefined,
+        replyTo: replyTo ? {
+          id: replyTo.id,
+          senderName: replyTo.senderName,
+          content: replyTo.deleted ? "Message supprimé" : replyTo.content
+        } : undefined
       };
 
       setMessages({
@@ -407,6 +442,7 @@ export default function AdminCommunication() {
       
       setMessageInput("");
       setAttachments([]);
+      setReplyTo(null);
       toast.success(attachments.length > 0 ? "Message et fichiers envoyés" : "Message envoyé");
     } catch (error) {
       toast.error("Erreur lors de l'envoi");
@@ -505,6 +541,64 @@ export default function AdminCommunication() {
     setMessageInput(prev => prev + emojiObject.emoji);
     setShowEmojiPicker(false);
   };
+
+  
+
+  // Ajouter/retirer une réaction
+  const handleReaction = (messageId: string, emoji: string) => {
+    if (!selectedChannel) return;
+    const channelMessages = [...(messages[selectedChannel.id] || [])];
+    const msgIndex = channelMessages.findIndex(m => m.id === messageId);
+    if (msgIndex === -1) return;
+
+    const msg = { ...channelMessages[msgIndex] };
+    const reactions = [...(msg.reactions || [])];
+    const existingIndex = reactions.findIndex(r => r.emoji === emoji);
+
+    if (existingIndex >= 0) {
+      const r = { ...reactions[existingIndex] };
+      if (r.userIds.includes("admin")) {
+        r.userIds = r.userIds.filter(id => id !== "admin");
+        r.count -= 1;
+        if (r.count === 0) {
+          reactions.splice(existingIndex, 1);
+        } else {
+          reactions[existingIndex] = r;
+        }
+      } else {
+        r.userIds = [...r.userIds, "admin"];
+        r.count += 1;
+        reactions[existingIndex] = r;
+      }
+    } else {
+      reactions.push({ emoji, count: 1, userIds: ["admin"] });
+    }
+
+    msg.reactions = reactions;
+    channelMessages[msgIndex] = msg;
+    setMessages({ ...messages, [selectedChannel.id]: channelMessages });
+    setReactionPickerMessageId(null);
+  };
+
+  // Supprimer son propre message
+  // Supprimer son propre message
+const handleDeleteMessage = (messageId: string) => {
+  if (!selectedChannel) return;
+  const channelMessages = (messages[selectedChannel.id] || []).map(m =>
+    m.id === messageId ? { 
+      ...m, 
+      deleted: true, 
+      content: "Vous avez supprimé ce message", 
+      attachments: undefined,
+      reactions: [] // ← AJOUTER CETTE LIGNE pour faire disparaître les réactions
+    } : m
+  );
+  setMessages({ ...messages, [selectedChannel.id]: channelMessages });
+  setDeleteConfirmMessageId(null);
+  toast.success("Message supprimé");
+};
+
+  
 
   return (
     <div className="flex h-screen">
@@ -614,7 +708,7 @@ export default function AdminCommunication() {
           {selectedChannel ? (
             <div className={`flex-1 flex transition-all duration-300 overflow-hidden`}>
               <div className="flex-1 flex flex-col bg-[#F7F8FC]">
-                {/* En-tête du chat */}
+                {/* En-tête du chat - VERSION MODIFIÉE */}
                 <div className="bg-white border-b border-gray-200 px-6 py-4">
                   <div className="flex items-center gap-3">
                     <div className={`w-12 h-12 rounded-lg bg-gradient-to-r ${selectedChannel.color} flex items-center justify-center text-white`}>
@@ -624,21 +718,20 @@ export default function AdminCommunication() {
                       <h2 className="text-xl font-bold text-[#1B2A4A]">{selectedChannel.name}</h2>
                       <p className="text-sm text-gray-500">{selectedChannel.description}</p>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        <Bell className="w-4 h-4 mr-2" />
-                        Notifications
-                      </Button>
-                      <Button 
-                        variant={showMembersPanel ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setShowMembersPanel(!showMembersPanel)}
-                        className={showMembersPanel ? "bg-[#0EA8A8] hover:bg-[#0c8e8e]" : ""}
-                      >
-                        <Users className="w-4 h-4 mr-2" />
-                        {selectedChannel.members} membre{selectedChannel.members !== 1 ? 's' : ''}
-                      </Button>
-                    </div>
+                    <div className="flex items-center gap-1">
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      onClick={() => setIsMuted(!isMuted)}
+                                      className={isMuted ? 'text-[#0EA8A8]' : ''}
+                                    >
+                                      {isMuted ? <BellOff className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+                                    </Button>
+                                    <Button variant="ghost" size="sm" onClick={() => setShowMembersPanel(!showMembersPanel)}>
+                                      <Users className="w-4 h-4 mr-2" />
+                                      {selectedChannel.membersList.length}
+                                    </Button>
+                                  </div>
                   </div>
                 </div>
 
@@ -647,31 +740,45 @@ export default function AdminCommunication() {
                   {(messages[selectedChannel.id] || []).map((message) => (
                     <div
                       key={message.id}
-                      className={`flex gap-3 ${message.isAdmin ? 'flex-row-reverse' : ''}`}
+                      className={`flex gap-3 group ${message.isAdmin ? 'flex-row-reverse' : ''}`}
+                      
                     >
-                      <Avatar className="w-8 h-8">
+                      <Avatar className="w-8 h-8 shrink-0 mt-1">
                         <AvatarFallback className={message.isAdmin ? 'bg-[#0EA8A8] text-white' : 'bg-gray-200'}>
                           {message.senderName.charAt(0)}
                         </AvatarFallback>
                       </Avatar>
-                      <div className={`flex-1 ${message.isAdmin ? 'flex justify-end' : ''}`}>
-                        <div className={`inline-block max-w-[70%] ${message.isAdmin ? 'text-right' : ''}`}>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-medium text-gray-900">{message.senderName}</span>
-                            <span className="text-xs text-gray-400">{formatTimestamp(message.timestamp)}</span>
-                            {message.isAdmin && (
-                              <Badge variant="outline" className="text-xs bg-[#0EA8A8]/10 text-[#0EA8A8]">
-                                Admin
-                              </Badge>
-                            )}
+
+                      <div className={`flex-1 flex flex-col ${message.isAdmin ? 'items-end' : 'items-start'}`}>
+                        {/* Nom + heure */}
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-medium text-gray-900">{message.senderName}</span>
+                          <span className="text-xs text-gray-400">{formatTimestamp(message.timestamp)}</span>
+                          {message.isAdmin && (
+                            <Badge variant="outline" className="text-xs bg-[#0EA8A8]/10 text-[#0EA8A8]">Admin</Badge>
+                          )}
+                        </div>
+
+                        {/* Citation de réponse */}
+                        {message.replyTo && (
+                          <div className={`mb-1 px-3 py-1.5 rounded-lg border-l-2 border-[#0EA8A8] bg-gray-100 max-w-[70%] text-left`}>
+                            <p className="text-xs font-semibold text-[#0EA8A8]">{message.replyTo.senderName}</p>
+                            <p className="text-xs text-gray-500 truncate">{message.replyTo.content}</p>
                           </div>
-                          <div className={`px-4 py-2 rounded-lg ${
-                            message.isAdmin 
-                              ? 'bg-[#0EA8A8] text-white' 
-                              : 'bg-white border border-gray-200'
+                        )}
+
+                        {/* Bulle du message + actions flottantes */}
+                        <div className={`relative flex items-center gap-2 ${message.isAdmin ? 'flex-row-reverse' : ''}`}>
+                          {/* Bulle */}
+                          <div className={`relative max-w-[70%] px-4 py-2 rounded-2xl  ${
+                            message.deleted
+                              ? 'bg-gray-100 border border-dashed border-gray-300 italic text-gray-400 text-sm'
+                              : message.isAdmin
+                                ? 'bg-[#0EA8A8] text-white'
+                                : 'bg-white border border-gray-200'
                           }`}>
                             {message.content && <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>}
-                            {message.attachments && message.attachments.length > 0 && (
+                            {!message.deleted && message.attachments && message.attachments.length > 0 && (
                               <div className="mt-2 space-y-2">
                                 {message.attachments.map((file) => (
                                   <div key={file.id} className={`flex items-center gap-2 p-2 rounded-lg ${
@@ -695,14 +802,96 @@ export default function AdminCommunication() {
                               </div>
                             )}
                           </div>
+
+                          {/* Actions flottantes (hover) */}
+                          {!message.deleted  && (
+                            <div className={`flex items-center   ${message.isAdmin ? 'flex-row-reverse' : ''}`}>
+                              {/* Réagir */}
+                              <div className="relative" ref={reactionPickerMessageId === message.id ? reactionPickerRef : null}>
+                                <button
+                                  onClick={() => setReactionPickerMessageId(reactionPickerMessageId === message.id ? null : message.id)}
+                                  className="w-7 h-7 flex items-center justify-center rounded-full bg-white border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors text-gray-500"
+                                  title="Réagir"
+                                >
+                                  <Smile className="w-4 h-4" />
+                                </button>
+                                {reactionPickerMessageId === message.id && (
+                                  <div className={`absolute bottom-9 ${message.isAdmin ? 'right-0' : 'left-0'} z-50 flex items-center gap-1 bg-white border border-gray-200 rounded-full shadow-lg px-2 py-1`}>
+                                    {QUICK_REACTIONS.map(emoji => (
+                                      <button
+                                        key={emoji}
+                                        onClick={() => handleReaction(message.id, emoji)}
+                                        className="text-lg hover:scale-125 transition-transform p-0.5"
+                                      >
+                                        {emoji}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Répondre */}
+                              <button
+                                onClick={() => setReplyTo(message)}
+                                className="w-7 h-7 flex items-center justify-center rounded-full bg-white border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors text-gray-500"
+                                title="Répondre"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                              </button>
+
+                              {/* Supprimer (seulement ses propres messages) */}
+                              {message.isAdmin && (
+                                <button
+                                  onClick={() => setDeleteConfirmMessageId(message.id)}
+                                  className="w-7 h-7 flex items-center justify-center rounded-full bg-white border border-gray-200 shadow-sm hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors text-gray-500"
+                                  title="Supprimer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </div>
+
+                        {/* Réactions */}
+                        {message.reactions && message.reactions.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {message.reactions.map(reaction => (
+                              <button
+                                key={reaction.emoji}
+                                onClick={() => handleReaction(message.id, reaction.emoji)}
+                                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border transition-colors ${
+                                  reaction.userIds.includes("admin")
+                                    ? 'bg-[#0EA8A8]/10 border-[#0EA8A8] text-[#0EA8A8]'
+                                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                                }`}
+                              >
+                                <span>{reaction.emoji}</span>
+                                <span>{reaction.count}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
+                  <div ref={messagesEndRef} />
                 </div>
 
                 {/* Zone de saisie avec pièces jointes et emojis */}
                 <div className="bg-white border-t border-gray-200 p-4">
+                  {/* Bandeau réponse */}
+                  {replyTo && (
+                    <div className="mb-3 flex items-center gap-2 px-3 py-2 bg-[#0EA8A8]/10 rounded-lg border border-[#0EA8A8]/30">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-[#0EA8A8]">Répondre à {replyTo.senderName}</p>
+                        <p className="text-xs text-gray-500 truncate">{replyTo.content || "(pièce jointe)"}</p>
+                      </div>
+                      <button onClick={() => setReplyTo(null)} className="text-gray-400 hover:text-red-400">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                   {attachments.length > 0 && (
                     <div className="mb-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                       <div className="flex items-center justify-between mb-2">
@@ -933,6 +1122,30 @@ export default function AdminCommunication() {
           )}
         </div>
       </div>
+
+      {/* Dialogue de confirmation pour la suppression d'un message */}
+      {deleteConfirmMessageId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setDeleteConfirmMessageId(null)} />
+          <div className="relative bg-white rounded-lg shadow-xl max-w-sm w-full mx-4 p-6 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-[#1B2A4A]">Supprimer le message</h3>
+            </div>
+            <p className="text-gray-600 mb-6">
+              Êtes-vous sûr de vouloir supprimer ce message ? Cette action est irréversible.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setDeleteConfirmMessageId(null)}>Annuler</Button>
+              <Button onClick={() => handleDeleteMessage(deleteConfirmMessageId)} className="bg-red-500 hover:bg-red-600">
+                Supprimer
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Dialogue de confirmation pour le retrait d'un membre */}
       {showConfirmDialog && (
