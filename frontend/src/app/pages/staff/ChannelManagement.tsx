@@ -118,6 +118,7 @@ export default function ChannelManagement() {
   const [invitedIds, setInvitedIds] = useState<string[]>([]);
   const [pendingAttachments, setPendingAttachments] = useState<FileAttachment[]>([]);
   const [memberInviteQuery, setMemberInviteQuery] = useState("");
+  const [showAddMemberInput, setShowAddMemberInput] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -199,6 +200,7 @@ export default function ChannelManagement() {
           : channel,
       ),
     );
+    setShowAddMemberInput(false);
     setMemberInviteQuery("");
     toast.success("Membre ajoute au canal.");
   };
@@ -419,42 +421,62 @@ export default function ChannelManagement() {
           {showMemberList && (
             <div className="w-72 bg-white border-l border-gray-200 flex flex-col">
               <div className="p-4 border-b">
-                <h3 className="font-bold text-[#1B2A4A]">Participants</h3>
-                <p className="text-sm text-gray-600">{selectedChannel?.members.length ?? 0} personnes</p>
-                {canManageMembers && (
-                  <div className="mt-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-bold text-[#1B2A4A]">Participants</h3>
+                    <p className="text-sm text-gray-600">{selectedChannel?.members.length ?? 0} personnes</p>
+                  </div>
+                  {canManageMembers && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => setShowAddMemberInput((prev) => !prev)}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Ajouter
+                    </Button>
+                  )}
+                </div>
+                {canManageMembers && showAddMemberInput && (
+                  <div className="mt-3 space-y-3 rounded-2xl border border-[#0EA8A8]/20 bg-[#F8FCFC] p-3">
                     <Input
                       value={memberInviteQuery}
                       onChange={(event) => setMemberInviteQuery(event.target.value)}
-                      placeholder="Ajouter un membre..."
-                      className="h-9 text-sm"
+                      placeholder="Rechercher un membre..."
+                      className="h-9 text-sm bg-white"
                     />
+                    <div className="space-y-2">
+                      {addableMembers.slice(0, 5).map((member) => (
+                        <button
+                          key={`add-${member.id}`}
+                          type="button"
+                          onClick={() => addMemberToChannel(member.id)}
+                          className="flex w-full items-center gap-3 rounded-xl bg-white px-3 py-2 text-left transition hover:bg-[#F2F7F7]"
+                        >
+                          <Avatar>
+                            <AvatarImage src={member.avatar} />
+                            <AvatarFallback>{member.firstName[0]}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm text-[#1B2A4A] truncate">
+                              {member.firstName} {member.lastName}
+                            </p>
+                            <p className="text-xs text-gray-500 capitalize">{member.role}</p>
+                          </div>
+                          <Plus className="h-4 w-4 text-[#0EA8A8]" />
+                        </button>
+                      ))}
+                      {addableMembers.length === 0 && (
+                        <p className="text-xs text-gray-500">Aucun membre disponible.</p>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
 
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-3">
-                  {canManageMembers && addableMembers.slice(0, 5).map((member) => (
-                    <button
-                      key={`add-${member.id}`}
-                      type="button"
-                      onClick={() => addMemberToChannel(member.id)}
-                      className="flex w-full items-center gap-3 rounded-xl border border-dashed border-[#0EA8A8]/40 bg-[#F4FBFB] px-3 py-2 text-left"
-                    >
-                      <Avatar>
-                        <AvatarImage src={member.avatar} />
-                        <AvatarFallback>{member.firstName[0]}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm text-[#1B2A4A] truncate">
-                          {member.firstName} {member.lastName}
-                        </p>
-                        <p className="text-xs text-gray-500">Ajouter au canal</p>
-                      </div>
-                      <Plus className="h-4 w-4 text-[#0EA8A8]" />
-                    </button>
-                  ))}
                   {channelMembers.map((member) => (
                     <div key={member.id} className="flex items-center gap-3">
                       <Avatar>
