@@ -1,16 +1,21 @@
-import { useMemo, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import { useLocation } from "react-router";
 import {
-  CheckCircle,
-  Eye,
+  ArrowLeft,
+  CalendarDays,
   FileText,
+  Globe2,
   Image as ImageIcon,
+  Instagram,
+  Linkedin,
+  Lock,
   MessageCircle,
   MoreHorizontal,
   Pin,
+  Phone,
   Plus,
   Search,
-  Sparkles,
+  Send,
   ThumbsUp,
   Users,
 } from "lucide-react";
@@ -22,21 +27,31 @@ import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "../../components/ui/dropdown-menu";
-import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "../../components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../../components/ui/dropdown-menu";
 import { Input } from "../../components/ui/input";
 import { Textarea } from "../../components/ui/textarea";
 import { clubForums, forumPosts, members } from "../../data/mockData";
+
+type FeedFilter = "all" | "featured" | "photos" | "files";
+
+const formatDate = (value: string) =>
+  new Date(value).toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
 export default function StaffForum() {
   const location = useLocation();
@@ -46,85 +61,85 @@ export default function StaffForum() {
     : members.find((member) => member.role === "staff") ?? members[0];
 
   const forums = clubForums.filter((forum) => forum.clubId === actor.clubId);
-  const [selectedForumId, setSelectedForumId] = useState(forums[0]?.id ?? "");
+  const [selectedForumId, setSelectedForumId] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState<FeedFilter>("all");
   const [isPostModalOpen, setIsPostModalOpen] = useState(false);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [newPostTitle, setNewPostTitle] = useState("");
   const [newPostBody, setNewPostBody] = useState("");
-  const [activeTab, setActiveTab] = useState<"discussion" | "featured" | "media" | "files">("discussion");
-  const [posts, setPosts] = useState(forumPosts.filter((post) => post.clubId === actor.clubId));
-  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [posts, setPosts] = useState(
+    forumPosts
+      .filter((post) => post.clubId === actor.clubId)
+      .sort((a, b) => +new Date(b.timestamp) - +new Date(a.timestamp)),
+  );
 
+  const query = searchQuery.toLowerCase();
   const selectedForum = forums.find((forum) => forum.id === selectedForumId) ?? null;
-  const filteredPosts = useMemo(
-    () =>
-      posts
-        .filter(
-          (post) =>
-            post.forumId === selectedForumId &&
-            `${post.title} ${post.body} ${post.tags.join(" ")}`
-              .toLowerCase()
-              .includes(searchQuery.toLowerCase()),
-        )
-        .sort((a, b) => Number(!!b.isPinned) - Number(!!a.isPinned)),
-    [posts, searchQuery, selectedForumId],
-  );
 
-  const featuredPosts = useMemo(
-    () => filteredPosts.filter((post) => post.isPinned || post.reactions >= 10),
-    [filteredPosts],
-  );
-
-  const mediaPosts = useMemo(
+  const filteredForums = useMemo(
     () =>
-      filteredPosts.filter((post) =>
-        post.attachments?.some((attachment) => attachment.type === "image"),
+      forums.filter((forum) =>
+        `${forum.name} ${forum.description} ${forum.visibility}`
+          .toLowerCase()
+          .includes(query),
       ),
-    [filteredPosts],
+    [forums, query],
   );
 
-  const filePosts = useMemo(
-    () => filteredPosts.filter((post) => (post.attachments?.length ?? 0) > 0),
-    [filteredPosts],
-  );
+  const currentPosts = useMemo(() => {
+    if (!selectedForum) return [];
 
-  const visiblePosts = useMemo(() => {
-    switch (activeTab) {
-      case "featured":
-        return featuredPosts;
-      case "media":
-        return mediaPosts;
-      case "files":
-        return filePosts;
-      default:
-        return filteredPosts;
+    const base = posts
+      .filter((post) => post.forumId === selectedForum.id)
+      .filter((post) =>
+        `${post.title} ${post.body} ${post.tags.join(" ")}`
+          .toLowerCase()
+          .includes(query),
+      )
+      .sort((a, b) => {
+        if (!!a.isPinned === !!b.isPinned) return +new Date(b.timestamp) - +new Date(a.timestamp);
+        return Number(!!b.isPinned) - Number(!!a.isPinned);
+      });
+
+    if (filter === "featured") return base.filter((post) => post.isPinned || post.reactions >= 10);
+    if (filter === "photos") {
+      return base.filter((post) => post.attachments?.some((attachment) => attachment.type === "image"));
     }
-  }, [activeTab, featuredPosts, mediaPosts, filePosts, filteredPosts]);
+    if (filter === "files") return base.filter((post) => (post.attachments?.length ?? 0) > 0);
+    return base;
+  }, [filter, posts, query, selectedForum]);
 
-  const highlightedPost = featuredPosts[0] ?? filteredPosts[0];
+  const stats = useMemo(() => {
+    if (!selectedForum) return null;
+    const forumOnly = posts.filter((post) => post.forumId === selectedForum.id);
+    return {
+      postCount: forumOnly.length,
+      reactions: forumOnly.reduce((sum, post) => sum + post.reactions, 0),
+      comments: forumOnly.reduce((sum, post) => sum + post.commentCount, 0),
+      highlighted:
+        forumOnly.find((post) => post.isPinned) ??
+        [...forumOnly].sort((a, b) => b.reactions - a.reactions)[0] ??
+        null,
+    };
+  }, [posts, selectedForum]);
 
-  const emptyState = {
-    discussion: {
-      title: "Aucune publication",
-      description: "Lancez la conversation avec un premier post.",
-      icon: MessageCircle,
-    },
-    featured: {
-      title: "Aucune publication a la une",
-      description: "Epinglez un post ou laissez l'activite mettre en avant les sujets importants.",
-      icon: Pin,
-    },
-    media: {
-      title: "Aucun media partage",
-      description: "Les publications avec images apparaitront ici.",
-      icon: ImageIcon,
-    },
-    files: {
-      title: "Aucun fichier partage",
-      description: "Les posts avec pieces jointes seront centralises ici.",
-      icon: FileText,
-    },
-  }[activeTab];
+  const resetComposer = () => {
+    setEditingPostId(null);
+    setNewPostTitle("");
+    setNewPostBody("");
+  };
+
+  const openComposer = () => {
+    resetComposer();
+    setIsPostModalOpen(true);
+  };
+
+  const openForum = (forumId: string) => {
+    setSelectedForumId(forumId);
+    setSearchQuery("");
+    setFilter("all");
+  };
 
   const publishPost = () => {
     if (!selectedForum || !newPostTitle.trim() || !newPostBody.trim()) {
@@ -136,11 +151,11 @@ export default function StaffForum() {
       setPosts((prev) =>
         prev.map((post) =>
           post.id === editingPostId
-            ? { ...post, title: newPostTitle, body: newPostBody }
+            ? { ...post, title: newPostTitle.trim(), body: newPostBody.trim() }
             : post,
         ),
       );
-      toast.success("Post mis a jour.");
+      toast.success("Publication mise a jour.");
     } else {
       setPosts((prev) => [
         {
@@ -151,9 +166,9 @@ export default function StaffForum() {
           authorId: actor.id,
           authorName: `${actor.firstName} ${actor.lastName}`,
           authorAvatar: actor.avatar,
-          title: newPostTitle,
-          body: newPostBody,
-          tags: [selectedForum.visibility === "staff" ? "Staff" : "Club"],
+          title: newPostTitle.trim(),
+          body: newPostBody.trim(),
+          tags: [selectedForum.visibility === "staff" ? "Staff" : "Club", "Annonce"],
           reactions: 0,
           commentCount: 0,
           timestamp: new Date().toISOString(),
@@ -161,43 +176,38 @@ export default function StaffForum() {
         },
         ...prev,
       ]);
-      toast.success("Post publie.");
+      toast.success("Publication creee.");
     }
 
-    setNewPostTitle("");
-    setNewPostBody("");
-    setEditingPostId(null);
+    resetComposer();
     setIsPostModalOpen(false);
   };
 
-  const handleEditPost = (postId: string) => {
-    const post = posts.find((item) => item.id === postId);
-    if (!post) return;
+  const editPost = (postId: string) => {
+    const found = posts.find((post) => post.id === postId);
+    if (!found) return;
     setEditingPostId(postId);
-    setNewPostTitle(post.title);
-    setNewPostBody(post.body);
+    setNewPostTitle(found.title);
+    setNewPostBody(found.body);
     setIsPostModalOpen(true);
   };
 
-  const handleDeletePost = (postId: string) => {
+  const deletePost = (postId: string) => {
     setPosts((prev) => prev.filter((post) => post.id !== postId));
-    toast.success("Post supprime.");
+    toast.success("Publication supprimee.");
   };
 
-  const handleTogglePin = (postId: string) => {
+  const togglePin = (postId: string) => {
     setPosts((prev) =>
-      prev.map((post) =>
-        post.id === postId ? { ...post, isPinned: !post.isPinned } : post,
-      ),
+      prev.map((post) => (post.id === postId ? { ...post, isPinned: !post.isPinned } : post)),
     );
-    toast.success("Configuration du post mise a jour.");
+    toast.success("Publication mise a jour.");
   };
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-[#E8EEF5]">
       <Sidebar role={isPresidentView ? "president" : "staff"} />
-
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <TopNav
           userId={actor.id}
           userName={`${actor.firstName} ${actor.lastName}`}
@@ -207,437 +217,421 @@ export default function StaffForum() {
           notificationCount={posts.length}
         />
 
-        <main className="flex-1 overflow-y-auto bg-[#EEF2F7] p-6">
+        <main className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top,#ffffff_0%,#eef3f9_55%,#e6edf5_100%)] p-4 md:p-6">
           <div className="mx-auto max-w-7xl">
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[300px_minmax(0,1fr)_280px]">
-              <aside className="space-y-5 xl:sticky xl:top-6 xl:self-start">
-                <Card className="overflow-hidden gap-0">
-                  <div className="bg-gradient-to-br from-[#1B2A4A] via-[#214F72] to-[#0EA8A8] p-5 text-white">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="rounded-2xl bg-white/10 p-3">
-                        <Sparkles className="w-5 h-5" />
+            {!selectedForum ? (
+              <div className="space-y-6">
+                <Card className="overflow-hidden border-0 shadow-[0_18px_48px_rgba(27,42,74,0.08)]">
+                  <div className="bg-[linear-gradient(135deg,#1B2A4A_0%,#24587d_55%,#0EA8A8_100%)] px-6 py-8 text-white">
+                    <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                      <div className="max-w-3xl">
+                        <h1 className="text-3xl font-bold md:text-4xl">
+                          Les forums du {actor.clubName}
+                        </h1>
                       </div>
-                      <div>
-                        <p className="text-sm text-white/75">Forum du club</p>
-                        <h1 className="text-2xl font-bold">{actor.clubName}</h1>
-                      </div>
-                    </div>
-                    <p className="text-sm text-white/80">
-                      Un fil d&apos;actualite pour centraliser annonces, retours et discussions de l&apos;equipe.
-                    </p>
-                  </div>
-                  <div className="p-5">
-                    <div className="grid grid-cols-3 gap-3 text-center">
-                      <div className="rounded-2xl bg-[#F7F8FC] p-3">
-                        <p className="text-xs text-gray-500">Forums</p>
-                        <p className="text-xl font-bold text-[#1B2A4A]">{forums.length}</p>
-                      </div>
-                      <div className="rounded-2xl bg-[#F7F8FC] p-3">
-                        <p className="text-xs text-gray-500">Posts</p>
-                        <p className="text-xl font-bold text-[#1B2A4A]">{filteredPosts.length}</p>
-                      </div>
-                      <div className="rounded-2xl bg-[#F7F8FC] p-3">
-                        <p className="text-xs text-gray-500">Membres</p>
-                        <p className="text-xl font-bold text-[#1B2A4A]">{selectedForum?.memberCount ?? 0}</p>
+                      <div className="grid grid-cols-3 gap-3">
+                        <StatCard label="Forums" value={forums.length} />
+                        <StatCard label="Posts" value={posts.length} />
+                        <StatCard
+                          label="Membres"
+                          value={forums.reduce((sum, forum) => sum + forum.memberCount, 0)}
+                        />
                       </div>
                     </div>
                   </div>
                 </Card>
 
-                <Card className="p-5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <CheckCircle className="w-5 h-5 text-[#0EA8A8]" />
-                    <h2 className="text-lg font-bold text-[#1B2A4A]">Espaces</h2>
-                  </div>
-                  <div className="space-y-3">
-                    {forums.map((forum) => (
-                      <button
-                        key={forum.id}
-                        onClick={() => setSelectedForumId(forum.id)}
-                        className={`w-full rounded-2xl border p-4 text-left transition-all ${
-                          selectedForumId === forum.id
-                            ? "border-transparent bg-[#1B2A4A] text-white shadow-lg"
-                            : "border-gray-200 bg-white hover:bg-[#F7F8FC]"
-                        }`}
+                <div className="grid gap-6">
+                  <section className="space-y-5">
+                    <Card className="border-0 bg-white p-4 shadow-sm">
+                      <div className="relative">
+                        <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <Input
+                          value={searchQuery}
+                          onChange={(event) => setSearchQuery(event.target.value)}
+                          placeholder="Rechercher un forum..."
+                          className="h-12 rounded-full border-0 bg-[#F3F6FA] pl-11 shadow-none"
+                        />
+                      </div>
+                    </Card>
+
+                    <div className="grid gap-5 md:grid-cols-2">
+                      {filteredForums.map((forum) => {
+                        const recentPost = posts.find((post) => post.forumId === forum.id);
+                        return (
+                          <button
+                            key={forum.id}
+                            type="button"
+                            onClick={() => openForum(forum.id)}
+                            className="group text-left"
+                          >
+                            <Card className="overflow-hidden border-0 p-0 shadow-[0_18px_36px_rgba(15,23,42,0.08)] transition-transform hover:-translate-y-1">
+                              <div className="h-32 bg-[linear-gradient(135deg,#d7e0ef_0%,#eef4fb_55%,#d7f3f0_100%)]" />
+                              <div className="relative px-5 pb-5">
+                                <div className="-mt-10 flex items-end justify-between">
+                                  <div className="flex h-20 w-20 items-center justify-center rounded-[24px] border-4 border-white bg-[#1877F2] text-2xl font-bold text-white shadow-lg">
+                                    {forum.name.charAt(0)}
+                                  </div>
+                                  <Badge className="rounded-full bg-[#EEF4FF] text-[#1877F2]">
+                                    {forum.visibility === "staff" ? "Prive" : "Public"}
+                                  </Badge>
+                                </div>
+                                <h2 className="mt-4 text-xl font-bold text-[#15233B]">{forum.name}</h2>
+                                <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">
+                                  {forum.description}
+                                </p>
+                                <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
+                                  <span className="rounded-full bg-[#F4F7FB] px-3 py-1">{forum.postCount} sujets</span>
+                                  <span className="rounded-full bg-[#F4F7FB] px-3 py-1">{forum.memberCount} membres</span>
+                                </div>
+                                <div className="mt-4 rounded-2xl bg-[#F7F9FC] p-4">
+                                  <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Derniere activite</p>
+                                  <p className="mt-2 line-clamp-2 text-sm font-medium text-[#15233B]">
+                                    {recentPost?.title ?? "Aucune publication pour le moment"}
+                                  </p>
+                                </div>
+                                <div className="mt-4 flex items-center justify-between text-sm font-semibold text-[#1877F2]">
+                                  <span>Ouvrir le forum</span>
+                                  <ArrowLeft className="h-4 w-4 rotate-180 transition-transform group-hover:translate-x-1" />
+                                </div>
+                              </div>
+                            </Card>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                </div>
+              </div>
+            ) : (
+              <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_280px]">
+                <section className="min-w-0 space-y-5">
+                  <Card className="overflow-hidden border-0 p-0 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+                    <div className="relative h-52 bg-[linear-gradient(135deg,#d7e0ef_0%,#eef4fb_55%,#d7f3f0_100%)]">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute left-4 top-4 h-10 w-10 rounded-full bg-white/95 p-0 text-slate-700 shadow-md backdrop-blur hover:bg-white"
+                        onClick={() => setSelectedForumId("")}
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold">{forum.name}</p>
-                            <p className={`mt-1 text-sm ${selectedForumId === forum.id ? "text-white/75" : "text-gray-500"}`}>
-                              {forum.description}
-                            </p>
-                          </div>
-                          <Badge className={selectedForumId === forum.id ? "bg-white text-[#1B2A4A]" : "bg-[#0EA8A8]"}>
-                            {forum.visibility}
-                          </Badge>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </Card>
-              </aside>
-
-              <section className="space-y-5 min-w-0">
-                {selectedForum && (
-                  <>
-                    <Card className="overflow-hidden gap-0 border-none shadow-sm">
-                      <div className="h-56 bg-[linear-gradient(135deg,#1B2A4A_0%,#23486B_45%,#0EA8A8_100%)]" />
-                      <div className="bg-white px-6 pb-5">
-                        <div className="-mt-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                          <div className="flex items-end gap-4">
-                            <div className="flex h-24 w-24 items-center justify-center rounded-3xl border-4 border-white bg-[#0EA8A8] text-3xl font-bold text-white shadow-md">
-                              {selectedForum.name.charAt(0)}
-                            </div>
-                            <div className="pb-1">
-                              <div className="mb-2 flex flex-wrap items-center gap-2">
-                                <Badge className="bg-[#1B2A4A]">{selectedForum.visibility}</Badge>
-                                <Badge variant="outline">{actor.clubName}</Badge>
-                              </div>
-                              <h2 className="text-3xl font-bold text-[#1B2A4A]">{selectedForum.name}</h2>
-                              <p className="mt-1 max-w-2xl text-sm text-gray-500">{selectedForum.description}</p>
-                              <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-gray-500">
-                                <span className="flex items-center gap-2">
-                                  <Users className="w-4 h-4" />
-                                  {selectedForum.memberCount} membres
-                                </span>
-                                <span className="flex items-center gap-2">
-                                  <FileText className="w-4 h-4" />
-                                  {filteredPosts.length} publications
-                                </span>
-                                <span className="flex items-center gap-2">
-                                  <Eye className="w-4 h-4" />
-                                  Activite staff et president
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-wrap gap-3">
-                            <Button variant="outline" className="rounded-xl">
-                              <Users className="w-4 h-4 mr-2" />
-                              Inviter
-                            </Button>
-                            <Button className="rounded-xl bg-[#0EA8A8] hover:bg-[#0c8e8e]" onClick={() => setIsPostModalOpen(true)}>
-                              <Plus className="w-4 h-4 mr-2" />
-                              Creer un post
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="border-t bg-white px-4 py-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <button
-                            onClick={() => setActiveTab("discussion")}
-                            className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
-                              activeTab === "discussion"
-                                ? "bg-[#EAF4F4] text-[#0A7878]"
-                                : "text-gray-500 hover:bg-[#F1F4F9]"
-                            }`}
-                          >
-                            Discussion
-                          </button>
-                          <button
-                            onClick={() => setActiveTab("featured")}
-                            className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
-                              activeTab === "featured"
-                                ? "bg-[#EAF4F4] text-[#0A7878]"
-                                : "text-gray-500 hover:bg-[#F1F4F9]"
-                            }`}
-                          >
-                            A la une
-                          </button>
-                          <button
-                            onClick={() => setActiveTab("media")}
-                            className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
-                              activeTab === "media"
-                                ? "bg-[#EAF4F4] text-[#0A7878]"
-                                : "text-gray-500 hover:bg-[#F1F4F9]"
-                            }`}
-                          >
-                            Medias
-                          </button>
-                          <button
-                            onClick={() => setActiveTab("files")}
-                            className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
-                              activeTab === "files"
-                                ? "bg-[#EAF4F4] text-[#0A7878]"
-                                : "text-gray-500 hover:bg-[#F1F4F9]"
-                            }`}
-                          >
-                            Fichiers
-                          </button>
-                        </div>
-                      </div>
-                    </Card>
-
-                    <Card className="overflow-hidden gap-0 border-none shadow-sm">
-                      <div className="border-b bg-white p-5">
-                        <div className="flex items-center gap-4">
-                          <Avatar className="w-12 h-12">
-                            <AvatarFallback className="bg-[#0EA8A8] text-white">
-                              {actor.firstName[0]}
-                              {actor.lastName[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <button
-                            onClick={() => setIsPostModalOpen(true)}
-                            className="flex-1 rounded-full bg-[#F1F4F9] px-5 py-3 text-left text-sm text-gray-500 transition-colors hover:bg-[#E7ECF3]"
-                          >
-                            Exprimez-vous dans {selectedForum.name}...
-                          </button>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 gap-3 bg-white p-4 md:grid-cols-[1fr_auto] md:items-center">
-                        <div className="relative">
-                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                          <Input
-                            placeholder="Rechercher dans ce fil..."
-                            value={searchQuery}
-                            onChange={(event) => setSearchQuery(event.target.value)}
-                            className="h-11 rounded-full border-none bg-[#F1F4F9] pl-11 shadow-none"
-                          />
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <Sparkles className="w-4 h-4" />
-                          Fil le plus recent
-                        </div>
-                      </div>
-                    </Card>
-
-                    {visiblePosts.length === 0 ? (
-                      <Card className="border-none p-12 text-center shadow-sm">
-                        <emptyState.icon className="mx-auto mb-4 h-12 w-12 text-gray-300" />
-                        <h3 className="mb-2 text-lg font-semibold text-[#1B2A4A]">{emptyState.title}</h3>
-                        <p className="text-gray-500">{emptyState.description}</p>
-                      </Card>
-                    ) : (
-                      visiblePosts.map((post) => (
-                        <Card key={post.id} className="gap-0 overflow-visible border-none shadow-sm">
-                          {post.isPinned && (
-                            <div className="flex items-center gap-2 border-b bg-[#FFF5DD] px-5 py-3 text-sm text-[#8A6200]">
-                              <Pin className="w-4 h-4" />
-                              Publication epinglee
-                            </div>
-                          )}
-
-                          <div className="bg-white p-5">
-                            <div className="mb-4 flex items-start justify-between gap-4">
-                              <div className="flex items-center gap-3">
-                                <Avatar className="w-11 h-11">
-                                  <AvatarFallback className="bg-[#0EA8A8] text-white">
-                                    {post.authorName.charAt(0)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <span className="font-semibold text-[#1B2A4A]">{post.authorName}</span>
-                                    <Badge variant="outline">{selectedForum.visibility === "staff" ? "Staff" : "Club"}</Badge>
-                                  </div>
-                                  <div className="mt-1 flex items-center gap-2 text-xs text-gray-400">
-                                    <span>{new Date(post.timestamp).toLocaleDateString("fr-FR")}</span>
-                                    <span>•</span>
-                                    <span>{post.clubName}</span>
-                                  </div>
-                                </div>
-                              </div>
-
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="h-9 w-9 shrink-0 rounded-full p-0">
-                                    <MoreHorizontal className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleTogglePin(post.id)}>
-                                    {post.isPinned ? "Retirer l epingle" : "Epingler"}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleEditPost(post.id)}>
-                                    Modifier
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleDeletePost(post.id)} variant="destructive">
-                                    Supprimer
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-
-                            <h3 className="mb-2 text-xl font-bold text-[#1B2A4A]">{post.title}</h3>
-                            <p className="mb-4 whitespace-pre-wrap leading-7 text-gray-700">{post.body}</p>
-
-                            <div className="mb-4 flex flex-wrap gap-2">
-                              {post.tags.map((tag) => (
-                                <Badge key={tag} className="bg-[#EEF7F6] text-[#0A7878] hover:bg-[#E2F0EF]">
-                                  {tag}
-                                </Badge>
-                              ))}
-                            </div>
-
-                            {activeTab === "media" && post.attachments?.some((attachment) => attachment.type === "image") && (
-                              <div className="mb-4 rounded-2xl border border-[#DCE6F0] bg-[#F7FAFC] p-4">
-                                <div className="mb-3 flex items-center gap-2 text-sm font-medium text-[#1B2A4A]">
-                                  <ImageIcon className="h-4 w-4 text-[#0EA8A8]" />
-                                  Galerie du post
-                                </div>
-                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                  {post.attachments
-                                    ?.filter((attachment) => attachment.type === "image")
-                                    .map((attachment) => (
-                                      <div
-                                        key={attachment.id}
-                                        className="rounded-2xl bg-[linear-gradient(135deg,#E9F4F3_0%,#DCEBF4_100%)] p-4"
-                                      >
-                                        <p className="font-medium text-[#1B2A4A]">{attachment.name}</p>
-                                        <p className="mt-1 text-sm text-gray-500">Media partage dans ce forum</p>
-                                      </div>
-                                    ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {activeTab === "files" && post.attachments && post.attachments.length > 0 && (
-                              <div className="mb-4 rounded-2xl border border-[#DCE6F0] bg-[#F7FAFC] p-4">
-                                <div className="mb-3 flex items-center gap-2 text-sm font-medium text-[#1B2A4A]">
-                                  <FileText className="h-4 w-4 text-[#0EA8A8]" />
-                                  Fichiers du post
-                                </div>
-                                <div className="space-y-3">
-                                  {post.attachments.map((attachment) => (
-                                    <div
-                                      key={attachment.id}
-                                      className="flex items-center justify-between rounded-2xl bg-white px-4 py-3"
-                                    >
-                                      <div>
-                                        <p className="font-medium text-[#1B2A4A]">{attachment.name}</p>
-                                        <p className="text-sm text-gray-500">{attachment.type}</p>
-                                      </div>
-                                      <Badge variant="outline">{attachment.size ?? "Document"}</Badge>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            <div className="flex items-center justify-between border-t border-b border-gray-100 py-3 text-sm text-gray-500">
-                              <div className="flex items-center gap-4">
-                                <span className="flex items-center gap-2">
-                                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#0EA8A8]/10">
-                                    <ThumbsUp className="w-3.5 h-3.5 text-[#0EA8A8]" />
-                                  </span>
-                                  {post.reactions} reactions
-                                </span>
-                                <span>{post.commentCount} commentaires</span>
-                              </div>
-                              <span>{selectedForum.visibility === "staff" ? "Espace staff" : "Espace club"}</span>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-2 pt-3 md:grid-cols-3">
-                              <Button variant="ghost" className="justify-center rounded-xl text-gray-600">
-                                <ThumbsUp className="w-4 h-4 mr-2" />
-                                J&apos;aime
-                              </Button>
-                              <Button variant="ghost" className="justify-center rounded-xl text-gray-600">
-                                <MessageCircle className="w-4 h-4 mr-2" />
-                                Commenter
-                              </Button>
-                              <Button variant="ghost" className="justify-center rounded-xl text-gray-600 md:flex hidden">
-                                <Users className="w-4 h-4 mr-2" />
-                                Partager
-                              </Button>
-                            </div>
-                          </div>
-                        </Card>
-                      ))
-                    )}
-                  </>
-                )}
-              </section>
-
-              <aside className="space-y-5 xl:sticky xl:top-6 xl:self-start">
-                <Card className="p-5">
-                  <h2 className="text-lg font-bold text-[#1B2A4A] mb-4">A la une</h2>
-                  {highlightedPost ? (
-                    <div className="rounded-2xl bg-[#F7F8FC] p-4">
-                      <div className="mb-3 flex items-center gap-2">
-                        <Badge className="bg-[#F5A623]">Top post</Badge>
-                        {highlightedPost.isPinned && <Badge variant="outline">Epingle</Badge>}
-                      </div>
-                      <h3 className="font-semibold text-[#1B2A4A] mb-2">{highlightedPost.title}</h3>
-                      <p className="line-clamp-4 text-sm text-gray-600">{highlightedPost.body}</p>
+                        <ArrowLeft className="h-5 w-5" />
+                      </Button>
                     </div>
-                  ) : (
-                    <p className="text-sm text-gray-500">Aucune publication marquee.</p>
-                  )}
-                </Card>
+                    <div className="relative px-6 pb-6">
+                      <div className="-mt-14 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="flex flex-col gap-4 md:flex-row md:items-end">
+                          <div className="flex h-28 w-28 items-center justify-center rounded-[28px] border-4 border-white bg-[#1877F2] text-4xl font-bold text-white shadow-xl">
+                            {selectedForum.name.charAt(0)}
+                          </div>
+                          <div>
+                            <div className="mb-3 flex flex-wrap items-center gap-2">
+                              <Badge className="rounded-full bg-[#1877F2]">
+                                {selectedForum.visibility === "staff" ? "Forum prive" : "Forum public"}
+                              </Badge>
+                              <Badge variant="outline" className="rounded-full">{actor.clubName}</Badge>
+                            </div>
+                            <h1 className="text-3xl font-bold text-[#15233B]">{selectedForum.name}</h1>
+                            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+                              {selectedForum.description}
+                            </p>
+                            <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-500">
+                              <span className="flex items-center gap-2">
+                                {selectedForum.visibility === "staff" ? <Lock className="h-4 w-4" /> : <Globe2 className="h-4 w-4" />}
+                                {selectedForum.visibility === "staff" ? "Acces bureau" : "Acces club"}
+                              </span>
+                              <span className="flex items-center gap-2">
+                                <Users className="h-4 w-4" />
+                                {selectedForum.memberCount} membres
+                              </span>
+                              <span className="flex items-center gap-2">
+                                <MessageCircle className="h-4 w-4" />
+                                {stats?.postCount ?? 0} publications
+                              </span>
+                            </div>
+                          </div>
+                        </div>
 
-                {selectedForum && (
-                  <Card className="p-5">
-                    <h2 className="text-lg font-bold text-[#1B2A4A] mb-4">Resume du forum</h2>
-                    <div className="space-y-3 text-sm">
-                      <div className="flex items-center justify-between rounded-2xl bg-[#F7F8FC] px-4 py-3">
-                        <span className="text-gray-500">Visibilite</span>
-                        <span className="font-semibold text-[#1B2A4A]">{selectedForum.visibility}</span>
-                      </div>
-                      <div className="flex items-center justify-between rounded-2xl bg-[#F7F8FC] px-4 py-3">
-                        <span className="text-gray-500">Publications</span>
-                        <span className="font-semibold text-[#1B2A4A]">{filteredPosts.length}</span>
-                      </div>
-                      <div className="flex items-center justify-between rounded-2xl bg-[#F7F8FC] px-4 py-3">
-                        <span className="text-gray-500">Membres</span>
-                        <span className="font-semibold text-[#1B2A4A]">{selectedForum.memberCount}</span>
+                        <Button
+                          className="rounded-full bg-[#1877F2] px-5 hover:bg-[#0f67dd]"
+                          onClick={openComposer}
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Creer une publication
+                        </Button>
                       </div>
                     </div>
                   </Card>
-                )}
-              </aside>
-            </div>
+
+                  <Card className="border-0 bg-white p-4 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-12 w-12">
+                        <AvatarFallback className="bg-[#DDE9FF] text-[#1877F2]">
+                          {actor.firstName[0]}
+                          {actor.lastName[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <button
+                        type="button"
+                        onClick={openComposer}
+                        className="flex-1 rounded-full bg-[#F3F6FA] px-5 py-3 text-left text-sm text-slate-500 hover:bg-[#E7EDF6]"
+                      >
+                        Forums du club {actor.clubName}
+                      </button>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+                      {[
+                        { key: "featured", label: "A la une" },
+                        { key: "photos", label: "Photos" },
+                        { key: "files", label: "Fichiers" },
+                      ].map((item) => (
+                        <button
+                          key={item.key}
+                          type="button"
+                          onClick={() => setFilter(item.key as FeedFilter)}
+                          className={`rounded-full px-4 py-2 text-sm font-medium ${
+                            filter === item.key
+                              ? "bg-[#EEF4FF] text-[#1877F2]"
+                              : "bg-[#F7F9FC] text-slate-500 hover:bg-[#EEF2F8]"
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </Card>
+
+                  {currentPosts.length === 0 ? (
+                    <Card className="border-0 bg-white p-12 text-center shadow-sm">
+                      <MessageCircle className="mx-auto h-12 w-12 text-slate-300" />
+                      <h3 className="mt-4 text-lg font-semibold text-[#15233B]">Aucune publication</h3>
+                      <p className="mt-2 text-sm text-slate-500">
+                        Changez le filtre ou creez la premiere publication.
+                      </p>
+                    </Card>
+                  ) : (
+                    currentPosts.map((post) => (
+                      <Card key={post.id} className="overflow-hidden border-0 p-0 shadow-sm">
+                        {post.isPinned && (
+                          <div className="flex items-center gap-2 bg-[#FFF6D8] px-5 py-3 text-sm text-[#916800]">
+                            <Pin className="h-4 w-4" />
+                            Publication epinglee
+                          </div>
+                        )}
+                        <div className="p-5">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="h-11 w-11">
+                                <AvatarFallback className="bg-[#DDE9FF] text-[#1877F2]">
+                                  {post.authorName.split(" ").map((part) => part[0]).join("").slice(0, 2)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-semibold text-[#15233B]">{post.authorName}</p>
+                                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                                  <span>{formatDate(post.timestamp)}</span>
+                                  <span>•</span>
+                                  <span>{post.clubName}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-9 w-9 rounded-full p-0">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => togglePin(post.id)}>
+                                  {post.isPinned ? "Retirer l epingle" : "Epingler"}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => editPost(post.id)}>Modifier</DropdownMenuItem>
+                                <DropdownMenuItem variant="destructive" onClick={() => deletePost(post.id)}>
+                                  Supprimer
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+
+                          <h2 className="mt-4 text-xl font-bold text-[#15233B]">{post.title}</h2>
+                          <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-700">{post.body}</p>
+
+                          {post.attachments && post.attachments.length > 0 && (
+                            <div className="mt-4 rounded-3xl bg-[#F7F9FC] p-4">
+                              <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#15233B]">
+                                <FileText className="h-4 w-4 text-[#1877F2]" />
+                                Pieces jointes
+                              </div>
+                              <div className="space-y-3">
+                                {post.attachments.map((attachment) => (
+                                  <div key={attachment.id} className="flex items-center justify-between rounded-2xl bg-white px-4 py-3">
+                                    <div>
+                                      <p className="font-medium text-[#15233B]">{attachment.name}</p>
+                                      <p className="text-sm text-slate-500">{attachment.type}</p>
+                                    </div>
+                                    <Badge variant="outline">{attachment.size ?? "Document"}</Badge>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {filter === "photos" && post.attachments?.some((attachment) => attachment.type === "image") && (
+                            <div className="mt-4 rounded-3xl bg-[#F7F9FC] p-4">
+                              <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#15233B]">
+                                <ImageIcon className="h-4 w-4 text-[#1877F2]" />
+                                Photos
+                              </div>
+                              <div className="grid gap-3 sm:grid-cols-2">
+                                {post.attachments
+                                  .filter((attachment) => attachment.type === "image")
+                                  .map((attachment) => (
+                                    <div
+                                      key={attachment.id}
+                                      className="rounded-2xl bg-[linear-gradient(135deg,#d7e0ef_0%,#eef4fb_55%,#d7f3f0_100%)] p-5"
+                                    >
+                                      <p className="font-medium text-[#15233B]">{attachment.name}</p>
+                                      <p className="mt-1 text-sm text-slate-500">Photo partagee dans le forum</p>
+                                    </div>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {post.tags.map((tag) => (
+                              <Badge key={tag} className="rounded-full bg-[#EEF4FF] text-[#1877F2]">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+
+                          <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-sm text-slate-500">
+                            <div className="flex items-center gap-5">
+                              <span className="flex items-center gap-2">
+                                <ThumbsUp className="h-4 w-4 text-[#1877F2]" />
+                                {post.reactions}
+                              </span>
+                              <span className="flex items-center gap-2">
+                                <MessageCircle className="h-4 w-4" />
+                                {post.commentCount} commentaires
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 grid grid-cols-3 gap-2 border-t border-slate-100 pt-4">
+                            <ActionButton icon={<ThumbsUp className="h-4 w-4" />} label="J'aime" />
+                            <ActionButton icon={<MessageCircle className="h-4 w-4" />} label="Commenter" />
+                            <ActionButton icon={<Send className="h-4 w-4" />} label="Partager" />
+                          </div>
+                        </div>
+                      </Card>
+                    ))
+                  )}
+                </section>
+
+                <aside className="space-y-5">
+                  <Card className="border-0 bg-white p-5 shadow-sm">
+                    <h3 className="font-semibold text-[#15233B]">A propos</h3>
+                    <div className="mt-4 space-y-4 text-sm text-slate-600">
+                      <InfoRow icon={<Users className="h-4 w-4 text-[#1877F2]" />} text={`${selectedForum.memberCount} membres actifs`} />
+                      <InfoRow icon={<MessageCircle className="h-4 w-4 text-[#1877F2]" />} text={`${stats?.postCount ?? 0} publications`} />
+                      <InfoRow icon={<CalendarDays className="h-4 w-4 text-[#1877F2]" />} text="Fil centre sur les dernieres publications" />
+                      <InfoRow
+                        icon={selectedForum.visibility === "staff" ? <Lock className="h-4 w-4 text-[#1877F2]" /> : <Globe2 className="h-4 w-4 text-[#1877F2]" />}
+                        text={selectedForum.visibility === "staff" ? "Espace reserve au bureau" : "Espace ouvert au club"}
+                      />
+                    </div>
+                  </Card>
+
+                  <Card className="border-0 bg-white p-5 shadow-sm">
+                    <h3 className="font-semibold text-[#15233B]">Statistiques rapides</h3>
+                    <div className="mt-4 grid gap-3">
+                      <QuickStat label="Reactions" value={stats?.reactions ?? 0} />
+                      <QuickStat label="Commentaires" value={stats?.comments ?? 0} />
+                    </div>
+                  </Card>
+
+                  <Card className="border-0 bg-white p-5 shadow-sm">
+                    <h3 className="font-semibold text-[#15233B]">Contacts</h3>
+                    <div className="mt-4 space-y-3">
+                      <div className="flex items-center gap-3 rounded-2xl bg-[#F7F9FC] px-4 py-3 text-sm text-slate-600">
+                        <Instagram className="h-4 w-4 text-[#1877F2]" />
+                        <span>@{selectedForum.name.toLowerCase().replace(/\s+/g, "_")}</span>
+                      </div>
+                      <div className="flex items-center gap-3 rounded-2xl bg-[#F7F9FC] px-4 py-3 text-sm text-slate-600">
+                        <Linkedin className="h-4 w-4 text-[#1877F2]" />
+                        <span>{actor.clubName} Community</span>
+                      </div>
+                      <div className="flex items-center gap-3 rounded-2xl bg-[#F7F9FC] px-4 py-3 text-sm text-slate-600">
+                        <Phone className="h-4 w-4 text-[#1877F2]" />
+                        <span>{actor.phone ?? "+33 6 12 34 56 78"}</span>
+                      </div>
+                    </div>
+                  </Card>
+                </aside>
+              </div>
+            )}
           </div>
         </main>
       </div>
 
       <Dialog open={isPostModalOpen} onOpenChange={setIsPostModalOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>{editingPostId ? "Modifier la publication" : "Creer une publication"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="flex items-center gap-3 rounded-2xl bg-[#F7F8FC] p-4">
-              <Avatar className="w-11 h-11">
-                <AvatarFallback className="bg-[#0EA8A8] text-white">
-                  {actor.firstName[0]}
-                  {actor.lastName[0]}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-semibold text-[#1B2A4A]">{actor.firstName} {actor.lastName}</p>
-                <p className="text-sm text-gray-500">{selectedForum?.name}</p>
-              </div>
-            </div>
-
-            <Input
-              value={newPostTitle}
-              onChange={(event) => setNewPostTitle(event.target.value)}
-              placeholder="Titre de la publication"
-              className="h-11"
-            />
-            <Textarea
-              value={newPostBody}
-              onChange={(event) => setNewPostBody(event.target.value)}
-              placeholder="Partagez une mise a jour, une annonce ou une idee..."
-              rows={8}
-              className="min-h-44"
-            />
+          <div className="space-y-4">
+            <Input value={newPostTitle} onChange={(event) => setNewPostTitle(event.target.value)} placeholder="Titre de la publication" />
+            <Textarea value={newPostBody} onChange={(event) => setNewPostBody(event.target.value)} placeholder="Ecrivez votre message..." rows={7} />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPostModalOpen(false)}>
-              Annuler
-            </Button>
-            <Button onClick={publishPost} className="bg-[#0EA8A8] hover:bg-[#0c8e8e]">
+            <Button variant="outline" onClick={() => setIsPostModalOpen(false)}>Annuler</Button>
+            <Button className="bg-[#1877F2] hover:bg-[#0f67dd]" onClick={publishPost}>
               {editingPostId ? "Enregistrer" : "Publier"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur">
+      <p className="text-xs uppercase tracking-[0.18em] text-white/65">{label}</p>
+      <p className="mt-2 text-2xl font-bold">{value}</p>
+    </div>
+  );
+}
+
+function QuickStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-2xl bg-[#F7F9FC] p-4">
+      <p className="text-xs uppercase tracking-[0.16em] text-slate-400">{label}</p>
+      <p className="mt-2 text-2xl font-bold text-[#15233B]">{value}</p>
+    </div>
+  );
+}
+
+function InfoRow({ icon, text }: { icon: ReactNode; text: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="mt-0.5">{icon}</div>
+      <span>{text}</span>
+    </div>
+  );
+}
+
+function ActionButton({ icon, label }: { icon: ReactNode; label: string }) {
+  return (
+    <button
+      type="button"
+      className="flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-[#F3F6FA]"
+    >
+      {icon}
+      {label}
+    </button>
   );
 }

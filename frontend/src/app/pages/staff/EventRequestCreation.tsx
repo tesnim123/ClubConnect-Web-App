@@ -28,15 +28,17 @@ export default function EventRequestCreation() {
     description: "",
     format: "event",
     type: "intra-club",
-    date: "",
-    time: "",
+    startDate: "",
+    startTime: "",
+    endDate: "",
+    endTime: "",
     location: "",
     capacity: "",
     equipment: "",
   });
 
   const handleSubmit = () => {
-    if (!form.title || !form.date || !form.time || !form.location) {
+    if (!form.title || !form.startDate || !form.startTime || !form.endDate || !form.endTime || !form.location) {
       toast.error("Veuillez remplir les champs principaux.");
       return;
     }
@@ -47,8 +49,10 @@ export default function EventRequestCreation() {
       description: "",
       format: "event",
       type: "intra-club",
-      date: "",
-      time: "",
+      startDate: "",
+      startTime: "",
+      endDate: "",
+      endTime: "",
       location: "",
       capacity: "",
       equipment: "",
@@ -121,21 +125,41 @@ export default function EventRequestCreation() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-[#1B2A4A]">Date</label>
+                  <label className="text-sm font-medium text-[#1B2A4A]">Date debut</label>
                   <Input
                     type="date"
-                    value={form.date}
-                    onChange={(event) => setForm((prev) => ({ ...prev, date: event.target.value }))}
+                    value={form.startDate}
+                    onChange={(event) => setForm((prev) => ({ ...prev, startDate: event.target.value }))}
                     className="mt-2"
                   />
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-[#1B2A4A]">Heure</label>
+                  <label className="text-sm font-medium text-[#1B2A4A]">Heure debut</label>
                   <Input
                     type="time"
-                    value={form.time}
-                    onChange={(event) => setForm((prev) => ({ ...prev, time: event.target.value }))}
+                    value={form.startTime}
+                    onChange={(event) => setForm((prev) => ({ ...prev, startTime: event.target.value }))}
+                    className="mt-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-[#1B2A4A]">Date fin</label>
+                  <Input
+                    type="date"
+                    value={form.endDate}
+                    onChange={(event) => setForm((prev) => ({ ...prev, endDate: event.target.value }))}
+                    className="mt-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-[#1B2A4A]">Heure fin</label>
+                  <Input
+                    type="time"
+                    value={form.endTime}
+                    onChange={(event) => setForm((prev) => ({ ...prev, endTime: event.target.value }))}
                     className="mt-2"
                   />
                 </div>

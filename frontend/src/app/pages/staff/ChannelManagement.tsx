@@ -38,8 +38,70 @@ export default function ChannelManagement() {
   const actor = isPresidentView
     ? seedMembers.find((member) => member.role === "president") ?? seedMembers[0]
     : seedMembers.find((member) => member.role === "staff") ?? seedMembers[0];
+  const presidentChannels: Channel[] = [
+    {
+      id: "president-general",
+      name: "General",
+      type: "general",
+      clubId: actor.clubId,
+      description: `Canal general du ${actor.clubName}`,
+      icon: "#",
+      unreadCount: 3,
+      members: seedMembers.filter((member) => member.clubId === actor.clubId).map((member) => member.id),
+      isPrivate: false,
+    },
+    {
+      id: "president-club-staff",
+      name: "Club-staff",
+      type: "staff",
+      clubId: actor.clubId,
+      description: `Canal staff du ${actor.clubName}`,
+      icon: "lock",
+      unreadCount: 1,
+      members: seedMembers
+        .filter((member) => member.clubId === actor.clubId && ["staff", "president", "vicepresident"].includes(member.role))
+        .map((member) => member.id),
+      isPrivate: true,
+    },
+    {
+      id: "president-all-club-staff",
+      name: "All-Club-staff",
+      type: "staff",
+      description: "Canal inter-clubs pour tous les staffs",
+      icon: "users",
+      unreadCount: 2,
+      members: seedMembers
+        .filter((member) => ["staff", "president", "vicepresident"].includes(member.role))
+        .map((member) => member.id),
+      isPrivate: true,
+    },
+    {
+      id: "president-all-club-presidents",
+      name: "All-Club-Presidents",
+      type: "staff",
+      description: "Canal inter-clubs pour tous les presidents",
+      icon: "users",
+      unreadCount: 0,
+      members: seedMembers.filter((member) => member.role === "president").map((member) => member.id),
+      isPrivate: true,
+    },
+    {
+      id: "president-administration",
+      name: "Administration",
+      type: "staff",
+      description: "Canal de communication avec l'administration",
+      icon: "lock",
+      unreadCount: 1,
+      members: seedMembers
+        .filter((member) => member.role === "admin" || member.role === "president")
+        .map((member) => member.id),
+      isPrivate: true,
+    },
+  ];
   const [channels, setChannels] = useState<Channel[]>(
-    seedChannels.filter((channel) => !channel.clubId || channel.clubId === actor.clubId),
+    isPresidentView
+      ? presidentChannels
+      : seedChannels.filter((channel) => !channel.clubId || channel.clubId === actor.clubId),
   );
   const [selectedChannelId, setSelectedChannelId] = useState(channels[0]?.id ?? "");
   const [messageInput, setMessageInput] = useState("");
