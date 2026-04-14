@@ -27,8 +27,6 @@ import PresidentEventRequestsList from "./pages/president/EventRequestsList";
 import PresidentChannelManagement from "./pages/president/ChannelManagement";
 import PresidentForum from "./pages/president/Forum";
 import PresidentProfile from "./pages/president/Profile";
-import PresidentSettings from "./pages/president/Settings";
-import PresidentNotifications from "./pages/president/Notifications";
 
 import AdminDashboard from "./pages/admin/Dashboard";
 import ClubsManagement from "./pages/admin/ClubsManagement";
@@ -65,12 +63,10 @@ export const router = createBrowserRouter([
 
       // Settings routes with role prefix and dynamic ID
       { path: "admin/settings/:id", Component: AdminSettings },
-      { path: "president/settings/:id", Component: PresidentSettings },
       { path: ":role/settings/:id", Component: Settings },
 
       // Notifications routes with role prefix and dynamic ID
       { path: "admin/notifications/:id", Component: AdminNotifications },
-      { path: "president/notifications/:id", Component: PresidentNotifications },
       { path: ":role/notifications/:id", Component: Notifications },
 
       // Member routes
