@@ -428,13 +428,20 @@ export default function ChannelManagement() {
                   </div>
                   {canManageMembers && (
                     <Button
-                      variant="outline"
+                      variant="ghost"
                       size="sm"
-                      className="gap-2"
+                      className="relative h-10 w-10 rounded-full border border-[#D8E4EE] bg-[#F8FBFF] p-0 hover:bg-[#EEF6FF]"
                       onClick={() => setShowAddMemberInput((prev) => !prev)}
+                      title="Ajouter un participant"
                     >
-                      <Plus className="h-4 w-4" />
-                      Ajouter
+                      <Avatar className="h-9 w-9">
+                        <AvatarFallback className="bg-[#DDE9FF] text-[#1877F2]">
+                          <Users className="h-4 w-4" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#0EA8A8] text-white shadow-sm">
+                        <Plus className="h-3 w-3" />
+                      </span>
                     </Button>
                   )}
                 </div>
