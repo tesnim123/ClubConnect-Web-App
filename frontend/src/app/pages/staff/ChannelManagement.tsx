@@ -1,9 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Bell,
   BellOff,
   Check,
+  FileImage,
+  FileText,
   Hash,
   Lock,
   Plus,
@@ -30,7 +32,7 @@ import { ScrollArea } from "../../components/ui/scroll-area";
 import { Textarea } from "../../components/ui/textarea";
 import { useLocation } from "react-router";
 import { channels as seedChannels, members as seedMembers, messages as seedMessages } from "../../data/mockData";
-import type { Channel, Message } from "../../data/mockData";
+import type { Channel, FileAttachment, Message } from "../../data/mockData";
 
 export default function ChannelManagement() {
   const location = useLocation();
@@ -103,6 +105,7 @@ export default function ChannelManagement() {
       ? presidentChannels
       : seedChannels.filter((channel) => !channel.clubId || channel.clubId === actor.clubId),
   );
+  const [messages, setMessages] = useState<Message[]>(seedMessages);
   const [selectedChannelId, setSelectedChannelId] = useState(channels[0]?.id ?? "");
   const [messageInput, setMessageInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -113,10 +116,14 @@ export default function ChannelManagement() {
   const [newChannelDescription, setNewChannelDescription] = useState("");
   const [inviteQuery, setInviteQuery] = useState("");
   const [invitedIds, setInvitedIds] = useState<string[]>([]);
+  const [pendingAttachments, setPendingAttachments] = useState<FileAttachment[]>([]);
+  const [memberInviteQuery, setMemberInviteQuery] = useState("");
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentMessages = useMemo(
-    () => seedMessages.filter((message) => message.channelId === selectedChannelId),
-    [selectedChannelId],
+    () => messages.filter((message) => message.channelId === selectedChannelId),
+    [messages, selectedChannelId],
   );
 
   const selectedChannel = channels.find((channel) => channel.id === selectedChannelId) ?? channels[0];
@@ -138,11 +145,62 @@ export default function ChannelManagement() {
   );
 
   const channelMembers = availableMembers.filter((member) => selectedChannel?.members.includes(member.id));
+  const canManageMembers =
+    selectedChannel?.name === "General" ||
+    selectedChannel?.name === "Club-staff" ||
+    selectedChannel?.name === "robotique-général" ||
+    selectedChannel?.name === "robotique-staff";
+  const addableMembers = availableMembers.filter(
+    (member) =>
+      !selectedChannel?.members.includes(member.id) &&
+      `${member.firstName} ${member.lastName}`.toLowerCase().includes(memberInviteQuery.toLowerCase()),
+  );
 
   const sendMessage = () => {
-    if (!messageInput.trim()) return;
+    if (!messageInput.trim() && pendingAttachments.length === 0) return;
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `message-${Date.now()}`,
+        channelId: selectedChannelId,
+        senderId: actor.id,
+        senderName: `${actor.firstName} ${actor.lastName}`,
+        senderAvatar: actor.avatar,
+        content: messageInput.trim() || "Piece jointe partagee.",
+        timestamp: new Date().toISOString(),
+        attachments: pendingAttachments.length > 0 ? pendingAttachments : undefined,
+        read: true,
+      },
+    ]);
     toast.success("Message envoye.");
     setMessageInput("");
+    setPendingAttachments([]);
+  };
+
+  const handleAttachmentImport = (files: FileList | null, type: "image" | "file") => {
+    if (!files || files.length === 0) return;
+    const mapped: FileAttachment[] = Array.from(files).map((file, index) => ({
+      id: `attachment-${Date.now()}-${index}`,
+      name: file.name,
+      type: type === "image" ? "image" : "pdf",
+      url: "#",
+      size: `${Math.max(1, Math.round(file.size / 1024))} KB`,
+    }));
+    setPendingAttachments((prev) => [...prev, ...mapped]);
+    toast.success(type === "image" ? "Image ajoutee." : "Fichier ajoute.");
+  };
+
+  const addMemberToChannel = (memberId: string) => {
+    if (!selectedChannel || !canManageMembers) return;
+    setChannels((prev) =>
+      prev.map((channel) =>
+        channel.id === selectedChannel.id
+          ? { ...channel, members: [...channel.members, memberId] }
+          : channel,
+      ),
+    );
+    setMemberInviteQuery("");
+    toast.success("Membre ajoute au canal.");
   };
 
   const addInvitedMember = (memberId: string) => {
@@ -283,6 +341,18 @@ export default function ChannelManagement() {
                       )}
                       <div className={`p-3 rounded-lg ${isOwn ? "bg-[#0EA8A8] text-white" : "bg-white border border-gray-200"}`}>
                         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                        {message.attachments && message.attachments.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {message.attachments.map((attachment) => (
+                              <div
+                                key={attachment.id}
+                                className={`rounded-lg px-3 py-2 text-xs ${isOwn ? "bg-white/15 text-white" : "bg-[#F7F8FC] text-gray-600"}`}
+                              >
+                                {attachment.name}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -291,7 +361,48 @@ export default function ChannelManagement() {
             </div>
 
             <div className="bg-white border-t border-gray-200 p-4">
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(event) => handleAttachmentImport(event.target.files, "image")}
+              />
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(event) => handleAttachmentImport(event.target.files, "file")}
+              />
+              {pendingAttachments.length > 0 && (
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {pendingAttachments.map((attachment) => (
+                    <div
+                      key={attachment.id}
+                      className="flex items-center gap-2 rounded-full bg-[#F3F6FA] px-3 py-1 text-xs text-gray-600"
+                    >
+                      <span>{attachment.name}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPendingAttachments((prev) => prev.filter((item) => item.id !== attachment.id))
+                        }
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="flex gap-2">
+                <Button variant="outline" size="icon" onClick={() => imageInputRef.current?.click()}>
+                  <FileImage className="w-4 h-4" />
+                </Button>
+                <Button variant="outline" size="icon" onClick={() => fileInputRef.current?.click()}>
+                  <FileText className="w-4 h-4" />
+                </Button>
                 <Input
                   placeholder={`Envoyer un message dans #${selectedChannel?.name ?? ""}`}
                   value={messageInput}
@@ -310,10 +421,40 @@ export default function ChannelManagement() {
               <div className="p-4 border-b">
                 <h3 className="font-bold text-[#1B2A4A]">Participants</h3>
                 <p className="text-sm text-gray-600">{selectedChannel?.members.length ?? 0} personnes</p>
+                {canManageMembers && (
+                  <div className="mt-3">
+                    <Input
+                      value={memberInviteQuery}
+                      onChange={(event) => setMemberInviteQuery(event.target.value)}
+                      placeholder="Ajouter un membre..."
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                )}
               </div>
 
               <ScrollArea className="flex-1 p-4">
                 <div className="space-y-3">
+                  {canManageMembers && addableMembers.slice(0, 5).map((member) => (
+                    <button
+                      key={`add-${member.id}`}
+                      type="button"
+                      onClick={() => addMemberToChannel(member.id)}
+                      className="flex w-full items-center gap-3 rounded-xl border border-dashed border-[#0EA8A8]/40 bg-[#F4FBFB] px-3 py-2 text-left"
+                    >
+                      <Avatar>
+                        <AvatarImage src={member.avatar} />
+                        <AvatarFallback>{member.firstName[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm text-[#1B2A4A] truncate">
+                          {member.firstName} {member.lastName}
+                        </p>
+                        <p className="text-xs text-gray-500">Ajouter au canal</p>
+                      </div>
+                      <Plus className="h-4 w-4 text-[#0EA8A8]" />
+                    </button>
+                  ))}
                   {channelMembers.map((member) => (
                     <div key={member.id} className="flex items-center gap-3">
                       <Avatar>
