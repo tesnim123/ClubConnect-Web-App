@@ -119,6 +119,21 @@ export default function Notifications() {
     return '/member/dashboard';
   };
 
+  const resolveNotificationPath = (notification: Notification) => {
+    if (!notification.link) return null;
+
+    const roleBase = `/${user.role}`;
+    const mapByLink: Record<string, string> = {
+      "/events": `${roleBase}/events`,
+      "/forum": `${roleBase}/forum`,
+      "/members": user.role === "admin" ? "/admin/members" : user.role === "president" ? "/president/members" : `${roleBase}/dashboard`,
+      "/communication": user.role === "admin" ? "/admin/communication" : `${roleBase}/channels`,
+      "/chat": `${roleBase}/channels`,
+    };
+
+    return mapByLink[notification.link] ?? `${roleBase}${notification.link}`;
+  };
+
   const getSidebarRole = () => user.role;
 
   const getNotificationIcon = (type: string) => {
@@ -349,19 +364,23 @@ export default function Notifications() {
               <div className="space-y-3">
                 {filteredNotifications.map((notification) => {
                   const badge = getNotificationBadge(notification.type);
+                  const targetPath = resolveNotificationPath(notification);
                   return (
                     <Card
                       key={notification.id}
-                      className={`p-4 hover:shadow-md transition-all cursor-pointer ${
-                        !notification.isRead ? 'border-l-4 border-l-[#0EA8A8] bg-[#0EA8A8]/5' : ''
+                      className={`overflow-hidden border-0 p-0 shadow-sm transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_16px_30px_rgba(15,23,42,0.08)] ${
+                        !notification.isRead ? 'bg-[#f4fbfb]' : 'bg-white'
                       }`}
                       onClick={() => {
                         if (!notification.isRead) markAsRead(notification.id);
-                        if (notification.link) navigate(`/${user.role}${notification.link}`);
+                        if (targetPath) navigate(targetPath);
                       }}
                     >
-                      <div className="flex items-start gap-4">
-                        <div className="flex-shrink-0">{getNotificationIcon(notification.type)}</div>
+                      <div className={`h-1 w-full ${!notification.isRead ? "bg-[#0EA8A8]" : "bg-slate-100"}`} />
+                      <div className="flex items-start gap-4 p-5">
+                        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-[#eef6ff]">
+                          {getNotificationIcon(notification.type)}
+                        </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1">
@@ -370,7 +389,7 @@ export default function Notifications() {
                                 <Badge className={badge.className}>{badge.label}</Badge>
                                 {!notification.isRead && <Badge className="bg-[#0EA8A8] text-white">Nouveau</Badge>}
                               </div>
-                              <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
+                              <p className="mb-3 text-sm leading-6 text-gray-600">{notification.message}</p>
                               <div className="flex items-center gap-3 text-xs text-gray-400">
                                 <div className="flex items-center gap-1">
                                   <Clock className="w-3 h-3" />
@@ -382,13 +401,29 @@ export default function Notifications() {
                                     <span>De: {notification.sender.name}</span>
                                   </div>
                                 )}
+                                {targetPath && (
+                                  <span className="rounded-full bg-[#F3F6FA] px-2 py-1 text-[11px] font-medium text-slate-500">
+                                    Ouvrir la page
+                                  </span>
+                                )}
                               </div>
                             </div>
                             <div className="flex gap-1">
                               {!notification.isRead && (
-                                <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); markAsRead(notification.id); }} className="text-gray-400">
-                                  <Eye className="w-4 h-4" />
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => { e.stopPropagation(); markAsRead(notification.id); }}
+                                  className="rounded-full text-[#0EA8A8] hover:bg-[#0EA8A8]/10 hover:text-[#0EA8A8]"
+                                  title="Marquer comme vue"
+                                >
+                                  <Check className="w-4 h-4" />
                                 </Button>
+                              )}
+                              {notification.isRead && (
+                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-50 text-green-600" title="Notification vue">
+                                  <Check className="w-4 h-4" />
+                                </div>
                               )}
                               <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); deleteNotification(notification.id); }} className="text-gray-400 hover:text-red-500">
                                 <Trash2 className="w-4 h-4" />
