@@ -4,6 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { memberAcceptedTemplate } from "../utils/emailTemplates.js";
 import { sendEmail } from "../utils/sendEmail.js";
+import { onMemberAdded } from "../services/channelService.js";
 
 export const acceptMember = asyncHandler(async (req, res) => {
   const member = await User.findById(req.params.id).populate("club", "name");
@@ -22,6 +23,13 @@ export const acceptMember = asyncHandler(async (req, res) => {
 
   member.status = STATUSES.ACCEPTED;
   await member.save();
+
+  // Channel hook — add accepted member to club_general
+  try {
+    await onMemberAdded(member._id, member.club._id, null);
+  } catch (err) {
+    console.error("[Channels] Failed to add accepted member to channels:", err.message);
+  }
 
   const template = memberAcceptedTemplate({
     name: member.name,

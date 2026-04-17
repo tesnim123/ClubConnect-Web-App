@@ -6,6 +6,8 @@ import {
   getAdminClubById,
   getAdminClubs,
   updateClub,
+  updateMemberRole,
+  removeMember,
 } from "../controllers/adminController.js";
 import { ROLES } from "../constants/index.js";
 import { protect } from "../middlewares/authMiddleware.js";
@@ -20,5 +22,8 @@ router.get("/clubs/:id", getAdminClubById);
 router.put("/clubs/:id", updateClub);
 router.delete("/clubs/:id", deleteClub);
 router.post("/create-staff", createStaff);
+router.patch("/clubs/:id/members/:userId/role", updateMemberRole);
+router.delete("/clubs/:id/members/:userId", removeMember);
 
 export default router;
+

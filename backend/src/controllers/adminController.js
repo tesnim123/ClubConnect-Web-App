@@ -6,6 +6,13 @@ import { generateRandomPassword } from "../utils/generatePassword.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { sendEmail } from "../utils/sendEmail.js";
+import {
+  createClubChannels,
+  onMemberAdded,
+  onMemberRemoved,
+  onPresidentChanged,
+  onClubDeleted,
+} from "../services/channelService.js";
 
 const STAFF_TITLE_CONFIG = {
   PRESIDENT: { label: "President", role: ROLES.PRESIDENT },
@@ -152,6 +159,13 @@ export const createClub = asyncHandler(async (req, res) => {
     throw error;
   }
 
+  // Channel hook — fire-and-forget
+  try {
+    await createClubChannels(club, req.user._id);
+  } catch (err) {
+    console.error("[Channels] Failed to create club channels:", err.message);
+  }
+
   const savedClub = await populateClubQuery(Club.findById(club._id));
 
   res.status(201).json({
@@ -201,6 +215,13 @@ export const deleteClub = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Club introuvable.");
   }
 
+  // Channel hook — archive all club channels before deleting
+  try {
+    await onClubDeleted(club);
+  } catch (err) {
+    console.error("[Channels] Failed to clean up club channels:", err.message);
+  }
+
   await User.deleteMany({
     club: club._id,
     role: { $in: [ROLES.STAFF, ROLES.PRESIDENT] },
@@ -233,9 +254,145 @@ export const createStaff = asyncHandler(async (req, res) => {
 
   await club.save();
 
+  // Channel hook — fire-and-forget
+  try {
+    await onMemberAdded(created.user._id, clubId, created.user.staffTitle);
+  } catch (err) {
+    console.error("[Channels] Failed to add staff to channels:", err.message);
+  }
+
   res.status(201).json({
     message: "Compte staff cree et email envoye.",
     user: created.user.toSafeObject(),
     generatedPassword: process.env.NODE_ENV === "development" ? created.generatedPassword : undefined,
+  });
+});
+
+// ─── updateMemberRole ──────────────────────────────────────────────────────────
+// PATCH /api/admin/clubs/:id/members/:userId/role
+export const updateMemberRole = asyncHandler(async (req, res) => {
+  const { id: clubId, userId } = req.params;
+  const { staffTitle } = req.body;
+
+  if (!staffTitle) {
+    throw new ApiError(400, "staffTitle est obligatoire.");
+  }
+
+  const titleConfig = STAFF_TITLE_CONFIG[staffTitle];
+  if (!titleConfig) {
+    throw new ApiError(400, `Poste invalide: ${staffTitle}`);
+  }
+
+  const club = await Club.findById(clubId);
+  if (!club) {
+    throw new ApiError(404, "Club introuvable.");
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, "Utilisateur introuvable.");
+  }
+
+  if (String(user.club) !== String(clubId)) {
+    throw new ApiError(400, "L'utilisateur n'appartient pas a ce club.");
+  }
+
+  const oldStaffTitle = user.staffTitle;
+
+  // Handle president changes/demotions
+  if (oldStaffTitle === "PRESIDENT" && staffTitle !== "PRESIDENT") {
+    // Demoted FROM president
+    try {
+      await onPresidentChanged(clubId, userId, null, req.user._id);
+    } catch (err) {
+      console.error("[Channels] De-president archive failed:", err.message);
+    }
+  } else if (staffTitle === "PRESIDENT" && oldStaffTitle !== "PRESIDENT") {
+    // Promoted TO president
+    const currentPresident = await User.findOne({
+      club: clubId,
+      staffTitle: "PRESIDENT",
+    });
+
+    if (currentPresident && String(currentPresident._id) !== String(userId)) {
+      // Demote current president to VICE_PRESIDENT in DB
+      currentPresident.staffTitle = "VICE_PRESIDENT";
+      currentPresident.role = ROLES.STAFF;
+      await currentPresident.save();
+    }
+
+    // Hook handles archiving old, creating new, and global all_presidents
+    try {
+      await onPresidentChanged(
+        clubId,
+        currentPresident?._id || null,
+        userId,
+        req.user._id
+      );
+    } catch (err) {
+      console.error("[Channels] President switch failed:", err.message);
+    }
+  }
+
+  // Update user's title and role
+  user.staffTitle = staffTitle;
+  user.role = titleConfig.role;
+  await user.save();
+
+  // Ensure user is in all appropriate channels for their final role
+  // (club_general, club_staff, all_staff, etc.)
+  try {
+    await onMemberAdded(userId, clubId, staffTitle);
+  } catch (err) {
+    console.error("[Channels] Failed to sync member channels:", err.message);
+  }
+
+  res.status(200).json({
+    message: "Role mis a jour avec succes.",
+    user: user.toSafeObject(),
+  });
+});
+
+// ─── removeMember ──────────────────────────────────────────────────────────────
+// DELETE /api/admin/clubs/:id/members/:userId
+export const removeMember = asyncHandler(async (req, res) => {
+  const { id: clubId, userId } = req.params;
+
+  const club = await Club.findById(clubId);
+  if (!club) {
+    throw new ApiError(404, "Club introuvable.");
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, "Utilisateur introuvable.");
+  }
+
+  if (String(user.club) !== String(clubId)) {
+    throw new ApiError(400, "L'utilisateur n'appartient pas a ce club.");
+  }
+
+  // Channel hook — fire-and-forget (before removing user data)
+  try {
+    await onMemberRemoved(userId, clubId);
+  } catch (err) {
+    console.error("[Channels] Failed to remove member from channels:", err.message);
+  }
+
+  // Remove from club arrays
+  club.staff.pull(userId);
+  club.members.pull(userId);
+  await club.save();
+
+  // Clear user's club association
+  user.club = null;
+  user.staffTitle = null;
+  user.role = ROLES.MEMBER;
+  user.status = STATUSES.PENDING;
+  await user.save();
+
+  res.status(200).json({
+    message: "Membre retire du club avec succes.",
+    user: user.toSafeObject(),
   });
 });
