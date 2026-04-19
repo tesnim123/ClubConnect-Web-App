@@ -63,11 +63,11 @@ export default function ClubsManagement() {
           <div className="mb-6 flex items-center justify-between">
             <div>
               <h1 className="mb-2 text-3xl font-bold text-[#1B2A4A]">Gestion des clubs</h1>
-              <p className="text-gray-600">Creer et gerer les clubs de la Faculte des Sciences de Tunis</p>
+              <p className="text-gray-600">Créer et gérer les clubs de la Faculté des Sciences de Tunis</p>
             </div>
             <Button onClick={() => navigate("/admin/clubs/create")} className="bg-[#0EA8A8] hover:bg-[#0c8e8e]">
               <Plus className="mr-2 h-4 w-4" />
-              Creer un club
+              Créer un club
             </Button>
           </div>
 
@@ -87,7 +87,7 @@ export default function ClubsManagement() {
             <div className="py-12 text-center text-gray-500">Chargement des clubs...</div>
           ) : filteredClubs.length === 0 ? (
             <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center text-gray-500">
-              Aucun club enregistre pour le moment.
+              Aucun club enregistré pour le moment.
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">

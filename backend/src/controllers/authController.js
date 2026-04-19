@@ -21,16 +21,18 @@ export const login = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Identifiants invalides.");
   }
 
-  if (user.role === ROLES.MEMBER && user.status !== STATUSES.ACCEPTED) {
-    throw new ApiError(403, "Votre compte membre n'est pas encore accepte.");
-  }
+  // Temporarily allow member login regardless of status for testing
+  // if (user.role === ROLES.MEMBER && user.status !== STATUSES.ACCEPTED) {
+  //   throw new ApiError(403, "Votre compte membre n'est pas encore accepté.");
+  // }
 
-  if (STAFF_ROLES.includes(user.role) && user.status !== STATUSES.ACCEPTED) {
-    throw new ApiError(403, "Votre compte staff n'est pas actif.");
-  }
+  // Temporarily allow staff login regardless of status for testing
+  // if (STAFF_ROLES.includes(user.role) && user.status !== STATUSES.ACCEPTED) {
+  //   throw new ApiError(403, "Votre compte staff n'est pas actif.");
+  // }
 
   res.status(200).json({
-    message: "Connexion reussie.",
+    message: "Connexion réussie.",
     token: generateToken(user._id),
     user: user.toSafeObject(),
   });

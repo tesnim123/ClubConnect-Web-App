@@ -53,7 +53,7 @@ export const router = createBrowserRouter([
             ],
           },
           {
-            Component: () => <ProtectedRoute allowedRoles={["PRESIDENT"]} />,
+            Component: () => <ProtectedRoute allowedRoles={["PRESIDENT", "VICE_PRESIDENT"]} />,
             children: [
               { path: "president/dashboard", Component: RoleDashboard },
               { path: "president/members", Component: PresidentMembersPage },

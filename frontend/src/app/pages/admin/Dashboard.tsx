@@ -57,15 +57,15 @@ export default function AdminDashboard() {
                   Administration centrale
                 </div>
                 <h1 className="text-4xl font-bold">
-                  Bonjour {user?.name?.split(" ")[0] ?? "Admin"}, pilotez l'ecosysteme des clubs.
+                  Bonjour {user?.name?.split(" ")[0] ?? "Admin"}, pilotez l'écosystème des clubs.
                 </h1>
                 <p className="mt-4 max-w-2xl text-sm leading-7 text-white/80">
-                  Suivez l'activite reseau, les demandes a traiter et la dynamique des clubs depuis une vue plus actuelle et plus orientee action.
+                  Suivez l'activité réseau, les demandes à traiter et la dynamique des clubs depuis une vue plus actuelle et plus orientée action.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
                   <Button className="rounded-2xl bg-white text-[#10233F] hover:bg-slate-100" asChild>
                     <Link to="/admin/clubs/create">
-                      Creer un club
+                      Créer un club
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>
@@ -77,7 +77,7 @@ export default function AdminDashboard() {
 
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
                 <div className="rounded-[1.5rem] border border-white/10 bg-white/10 p-5 backdrop-blur">
-                  <p className="text-sm text-white/70">Taux d'activite clubs</p>
+                  <p className="text-sm text-white/70">Taux d'activité clubs</p>
                   <p className="mt-3 text-4xl font-bold">87%</p>
                   <p className="mt-2 text-sm text-emerald-200">Progression sur les 30 derniers jours</p>
                 </div>
@@ -94,7 +94,7 @@ export default function AdminDashboard() {
 
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-[#10233F]">Vue d'ensemble</h2>
-            <p className="text-gray-600">Tous les indicateurs utiles pour encadrer les clubs et leurs activites.</p>
+            <p className="text-gray-600">Tous les indicateurs utiles pour encadrer les clubs et leurs activités.</p>
           </div>
 
           <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
@@ -128,7 +128,7 @@ export default function AdminDashboard() {
                   <Calendar className="h-6 w-6 text-green-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Evenements ce mois</p>
+                  <p className="text-sm text-gray-600">Événements ce mois</p>
                   <p className="text-3xl font-bold text-[#10233F]">{events.length}</p>
                 </div>
               </div>
@@ -149,7 +149,7 @@ export default function AdminDashboard() {
 
           <div className="mb-6 grid gap-6 md:grid-cols-2">
             <Card className="rounded-[1.75rem] border-0 bg-white/85 p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-              <h2 className="mb-4 text-xl font-bold text-[#10233F]">Evenements par club</h2>
+              <h2 className="mb-4 text-xl font-bold text-[#10233F]">Événements par club</h2>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={eventsPerClub}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -185,15 +185,15 @@ export default function AdminDashboard() {
           </div>
 
           <Card className="mb-6 rounded-[1.75rem] border-0 bg-white/85 p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-            <h2 className="mb-4 text-xl font-bold text-[#10233F]">Activite recente</h2>
+            <h2 className="mb-4 text-xl font-bold text-[#10233F]">Activité récente</h2>
             <div className="space-y-4">
               <div className="flex items-start gap-4 border-b pb-4">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-green-500/10">
                   <TrendingUp className="h-5 w-5 text-green-500" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-semibold text-[#10233F]">Nouveau club cree</p>
-                  <p className="text-sm text-gray-600">Club Photographie cree avec succes</p>
+                  <p className="font-semibold text-[#10233F]">Nouveau club créé</p>
+                  <p className="text-sm text-gray-600">Club Photographie créé avec succès</p>
                   <p className="mt-1 text-xs text-gray-400">Il y a 2 heures</p>
                 </div>
               </div>
@@ -203,8 +203,8 @@ export default function AdminDashboard() {
                   <Calendar className="h-5 w-5 text-[#0EA8A8]" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-semibold text-[#10233F]">Evenement approuve</p>
-                  <p className="text-sm text-gray-600">Competition de Robots - Club Robotique</p>
+                  <p className="font-semibold text-[#10233F]">Événement approuvé</p>
+                  <p className="text-sm text-gray-600">Compétition de Robots - Club Robotique</p>
                   <p className="mt-1 text-xs text-gray-400">Il y a 5 heures</p>
                 </div>
               </div>
@@ -215,7 +215,7 @@ export default function AdminDashboard() {
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-[#10233F]">Nouveaux membres</p>
-                  <p className="text-sm text-gray-600">15 nouveaux membres ont rejoint differents clubs</p>
+                  <p className="text-sm text-gray-600">15 nouveaux membres ont rejoint différents clubs</p>
                   <p className="mt-1 text-xs text-gray-400">Hier</p>
                 </div>
               </div>
@@ -229,7 +229,7 @@ export default function AdminDashboard() {
                 <Link to="/admin/clubs/create">
                   <div className="flex flex-col items-center gap-2">
                     <Building2 className="h-8 w-8" />
-                    <span>Creer un club</span>
+                    <span>Créer un club</span>
                   </div>
                 </Link>
               </Button>
@@ -245,7 +245,7 @@ export default function AdminDashboard() {
                 <Link to="/admin/statistics">
                   <div className="flex flex-col items-center gap-2">
                     <Download className="h-8 w-8" />
-                    <span>Telecharger rapport</span>
+                    <span>Télécharger rapport</span>
                   </div>
                 </Link>
               </Button>

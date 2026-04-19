@@ -38,7 +38,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: PropsWithChildren) {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY));
   const [user, setUser] = useState<AuthUser | null>(() => getStoredAuthUser());
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const persistSession = (nextToken: string, nextUser: AuthUser) => {
     localStorage.setItem(TOKEN_KEY, nextToken);
@@ -54,12 +54,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   };
 
   const refreshMe = async () => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
+    if (!token || user) return;
 
     try {
       const response = await apiRequest<{ user: AuthUser }>("/users/me", {
@@ -72,21 +67,28 @@ export function AuthProvider({ children }: PropsWithChildren) {
       if (error instanceof ApiClientError && error.status === 401) {
         clearSession();
       }
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
     void refreshMe();
-  }, [token]);
+  }, []);
 
   const login = async (payload: LoginPayload) => {
     const response = await apiRequest<LoginResponse>("/auth/login", {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    persistSession(response.token, response.user);
+    
+    // Immediately update state and localStorage
+    localStorage.setItem(TOKEN_KEY, response.token);
+    localStorage.setItem(USER_KEY, JSON.stringify(response.user));
+    
+    // Update React state
+    setToken(response.token);
+    setUser(response.user);
+    setLoading(false);
+    
     return response.user;
   };
 

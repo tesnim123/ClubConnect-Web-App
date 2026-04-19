@@ -32,13 +32,13 @@ export default function Landing() {
           <div>
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/75 px-4 py-2 text-sm text-[#10233F] shadow-sm">
               <Sparkles className="h-4 w-4 text-[#0EA8A8]" />
-              Pense pour les clubs de la Faculte des Sciences de Tunis
+              Pensé pour les clubs de la Faculté des Sciences de Tunis
             </div>
             <h1 className="max-w-3xl text-5xl font-bold leading-tight text-[#10233F] lg:text-6xl">
               Une plateforme vivante pour organiser, animer et faire grandir vos clubs.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
-              Gere les adhesions, la communication et le suivi des activites dans une experience plus moderne, plus lisible et mieux adaptee aux clubs de la Faculte des Sciences de Tunis.
+              Gérez les adhésions, la communication et le suivi des activités dans une expérience plus moderne, plus lisible et mieux adaptée aux clubs de la Faculté des Sciences de Tunis.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
               <Button size="lg" className="rounded-2xl bg-[linear-gradient(135deg,#10233F_0%,#0EA8A8_100%)] px-7 hover:opacity-95" asChild>
@@ -62,16 +62,16 @@ export default function Landing() {
                     <p className="text-sm text-white/70">Espace coordination</p>
                     <p className="mt-1 text-2xl font-semibold">Clubs de la FST</p>
                   </div>
-                  <div className="rounded-2xl bg-white/15 px-3 py-2 text-sm">Faculte des Sciences de Tunis</div>
+                  <div className="rounded-2xl bg-white/15 px-3 py-2 text-sm">Faculté des Sciences de Tunis</div>
                 </div>
                 <p className="mt-6 max-w-xl text-sm leading-7 text-white/80">
-                  Une plateforme unifiee pour les clubs de la FST, avec un acces centralise aux profils, aux activites et aux espaces de communication.
+                  Une plateforme unifiée pour les clubs de la FST, avec un accès centralisé aux profils, aux activités et aux espaces de communication.
                 </p>
               </div>
               <div className="mt-5 grid gap-4 sm:grid-cols-3">
                 {[
-                  { icon: Users, title: "Clubs", text: "Gestion des membres, staffs et presidents." },
-                  { icon: Calendar, title: "Evenements", text: "Demandes, approbations et suivi terrain." },
+                  { icon: Users, title: "Clubs", text: "Gestion des membres, staffs et présidents." },
+                  { icon: Calendar, title: "Événements", text: "Demandes, approbations et suivi terrain." },
                   { icon: MessageSquare, title: "Communication", text: "Forums et canaux pour mobiliser les jeunes." },
                 ].map(({ icon: Icon, title, text }) => (
                   <div key={title} className="rounded-3xl border border-slate-100 bg-slate-50/80 p-4">
@@ -92,17 +92,17 @@ export default function Landing() {
             {
               icon: Users,
               title: "Gestion club par club",
-              text: "Structure claire des roles, validation des membres et meilleur suivi de chaque equipe.",
+              text: "Structure claire des rôles, validation des membres et meilleur suivi de chaque équipe.",
             },
             {
               icon: Calendar,
-              title: "Evenements plus fluides",
+              title: "Événements plus fluides",
               text: "Demandes, calendrier et ressources dans un tableau de bord plus lisible pour les jeunes organisateurs.",
             },
             {
               icon: ShieldCheck,
               title: "Administration plus fiable",
-              text: "Connexion, session et navigation admin harmonisees avec le vrai compte authentifie.",
+              text: "Connexion, session et navigation admin harmonisées avec le vrai compte authentifié.",
             },
           ].map(({ icon: Icon, title, text }) => (
             <div key={title} className="rounded-[1.75rem] border border-white/70 bg-white/75 p-7 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur">
@@ -116,13 +116,13 @@ export default function Landing() {
         </section>
 
         <div className="mt-16 rounded-[2rem] border border-white/70 bg-[linear-gradient(135deg,#10233F_0%,#0EA8A8_100%)] p-8 text-center text-white shadow-[0_24px_70px_rgba(16,35,63,0.24)]">
-          <h2 className="text-3xl font-bold">Un hub plus motive pour la vie associative.</h2>
+          <h2 className="text-3xl font-bold">Un hub plus motivé pour la vie associative.</h2>
           <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-white/80">
-            Concu pour les clubs de la Faculte des Sciences de Tunis, avec une interface plus simple et plus adaptee au cadre facultaire.
+            Conçu pour les clubs de la Faculté des Sciences de Tunis, avec une interface plus simple et plus adaptée au cadre facultaire.
           </p>
           <div className="mt-6 flex justify-center gap-4">
             <Button size="lg" className="rounded-2xl bg-white text-[#10233F] hover:bg-slate-100" asChild>
-              <Link to="/signup">Creer un compte</Link>
+              <Link to="/signup">Créer un compte</Link>
             </Button>
             <Button size="lg" variant="outline" className="rounded-2xl border-white/40 bg-transparent text-white hover:bg-white/10" asChild>
               <Link to="/login">Se connecter</Link>

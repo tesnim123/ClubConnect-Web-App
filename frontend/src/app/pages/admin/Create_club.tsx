@@ -36,7 +36,7 @@ export default function CreateClub() {
         }),
       });
 
-      toast.success("Club cree avec succes. Les identifiants du president ont ete envoyes par email.");
+      toast.success("Club créé avec succès. Les identifiants du président ont été envoyés par email.");
       navigate("/admin/clubs");
     } catch (err) {
       const message = err instanceof ApiClientError ? err.message : "Une erreur est survenue";
@@ -67,12 +67,12 @@ export default function CreateClub() {
               className="mb-4 flex items-center gap-2 text-gray-600 transition-colors hover:text-[#0EA8A8]"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span>Retour a la gestion des clubs</span>
+              <span>Retour à la gestion des clubs</span>
             </button>
 
             <div>
-              <h1 className="mb-2 text-3xl font-bold text-[#1B2A4A]">Creer un club</h1>
-              <p className="text-gray-600">Le president est cree automatiquement et recoit ses acces par email.</p>
+              <h1 className="mb-2 text-3xl font-bold text-[#1B2A4A]">Créer un club</h1>
+              <p className="text-gray-600">Le président est créé automatiquement et reçoit ses accès par email.</p>
             </div>
           </div>
 
@@ -96,7 +96,7 @@ export default function CreateClub() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">Nom du president</label>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">Nom du président</label>
                   <Input
                     value={presidentName}
                     onChange={(event) => setPresidentName(event.target.value)}
@@ -104,7 +104,7 @@ export default function CreateClub() {
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">Email du president</label>
+                  <label className="mb-2 block text-sm font-medium text-gray-700">Email du président</label>
                   <Input
                     type="email"
                     value={presidentEmail}
@@ -123,7 +123,7 @@ export default function CreateClub() {
                   Annuler
                 </Button>
                 <Button type="submit" disabled={isLoading} className="bg-[#0EA8A8] hover:bg-[#0c8e8e]">
-                  {isLoading ? "Creation..." : "Creer le club"}
+                  {isLoading ? "Création..." : "Créer le club"}
                 </Button>
               </div>
             </form>

@@ -67,7 +67,7 @@ export default function StaffProfile() {
                       </Button>
                     </div>
                     <div className="flex items-center gap-3 mt-3">
-                      <Badge className="bg-[#1B2A4A]">{isPresidentView ? "President" : "Staff"}</Badge>
+                      <Badge className="bg-[#1B2A4A]">{isPresidentView ? "Président" : "Staff"}</Badge>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Shield className="w-4 h-4" />
                         <span>{actor.clubName}</span>
@@ -160,7 +160,7 @@ export default function StaffProfile() {
                     <div>
                       <p className="font-semibold text-[#1B2A4A]">{isPresidentView ? "Notifications des demandes" : "Notifications du club"}</p>
                       <p className="text-sm text-gray-600">
-                        {isPresidentView ? "Recevoir les nouvelles adhesions" : "Recevoir les activites importantes du club"}
+                        {isPresidentView ? "Recevoir les nouvelles adhésions" : "Recevoir les activités importantes du club"}
                       </p>
                     </div>
                     <Switch defaultChecked />

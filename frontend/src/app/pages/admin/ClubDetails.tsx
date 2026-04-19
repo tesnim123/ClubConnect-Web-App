@@ -12,10 +12,10 @@ import { apiRequest, ApiClientError } from "../../lib/api";
 import type { AdminClub } from "../../types/club";
 
 const STAFF_TITLES_LABEL: Record<string, string> = {
-  PRESIDENT: "President",
-  VICE_PRESIDENT: "Vice President",
-  SECRETARY: "Secretaire",
-  TREASURER: "Tresorier",
+  PRESIDENT: "Président",
+  VICE_PRESIDENT: "Vice-président",
+  SECRETARY: "Secrétaire",
+  TREASURER: "Trésorier",
   HR: "RH",
   PROJECT_MANAGER: "Project Manager",
   SPONSO_MANAGER: "Sponso Manager",
@@ -71,7 +71,7 @@ export default function ClubDetails() {
       });
       setClub(response.club);
       setIsEditing(false);
-      toast.success("Club modifie avec succes");
+      toast.success("Club modifié avec succès");
     } catch (error) {
       const message = error instanceof ApiClientError ? error.message : "Modification impossible";
       toast.error(message);
@@ -89,7 +89,7 @@ export default function ClubDetails() {
         method: "DELETE",
         token,
       });
-      toast.success("Club supprime avec succes");
+      toast.success("Club supprimé avec succès");
       navigate("/admin/clubs");
     } catch (error) {
       const message = error instanceof ApiClientError ? error.message : "Suppression impossible";
@@ -122,10 +122,10 @@ export default function ClubDetails() {
           />
           <main className="flex-1 overflow-y-auto bg-[#F7F8FC] p-6">
             <div className="py-12 text-center">
-              <h2 className="mb-2 text-2xl font-bold text-gray-700">Club non trouve</h2>
-              <p className="mb-4 text-gray-500">Le club recherche n'existe pas.</p>
+              <h2 className="mb-2 text-2xl font-bold text-gray-700">Club non trouvé</h2>
+              <p className="mb-4 text-gray-500">Le club recherché n'existe pas.</p>
               <Button onClick={() => navigate("/admin/clubs")} className="bg-[#0EA8A8]">
-                Retour a la liste
+                Retour à la liste
               </Button>
             </div>
           </main>
@@ -154,13 +154,13 @@ export default function ClubDetails() {
               className="mb-4 flex items-center gap-2 text-gray-600 transition-colors hover:text-[#0EA8A8]"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span>Retour a la gestion des clubs</span>
+              <span>Retour à la gestion des clubs</span>
             </button>
 
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="mb-2 text-3xl font-bold text-[#1B2A4A]">{club.name}</h1>
-                <p className="text-gray-600">Details du club et responsables enregistres</p>
+                <p className="text-gray-600">Détails du club et responsables enregistrés</p>
               </div>
               <div className="flex gap-3">
                 <Button
@@ -187,7 +187,7 @@ export default function ClubDetails() {
                 </div>
                 <div className="p-6">
                   <h2 className="mb-3 text-xl font-bold text-[#1B2A4A]">Description</h2>
-                  <p className="leading-relaxed text-gray-700">{club.description || "Aucune description renseignee."}</p>
+                  <p className="leading-relaxed text-gray-700">{club.description || "Aucune description renseignée."}</p>
 
                   <div className="mt-4 border-t border-gray-200 pt-4">
                     <div className="flex items-center gap-6 text-sm text-gray-600">
