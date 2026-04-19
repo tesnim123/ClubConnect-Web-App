@@ -1,43 +1,21 @@
 import { createBrowserRouter } from "react-router";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
-import Notifications from "./components/Notifications";
-import Settings from "./components/Settings";
 import Root from "./pages/Root";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import PendingApproval from "./pages/PendingApproval";
 import Signup from "./pages/Signup";
-import AdminClubDetails from "./pages/admin/ClubDetails";
-import AdminCommunication from "./pages/admin/Communication";
-import CreateClub from "./pages/admin/Create_club";
-import AdminDashboard from "./pages/admin/Dashboard";
-import AdminEventRequests from "./pages/admin/EventRequests";
-import AdminForums from "./pages/admin/Forums";
 import ClubsManagement from "./pages/admin/ClubsManagement";
-import AdminMemberManagement from "./pages/admin/MemberManagement";
-import AdminNotifications from "./pages/admin/NotificationsAdmin";
-import AdminProfile from "./pages/admin/ProfileAdmin";
-import AdminSettings from "./pages/admin/SettingsAdmin";
-import Statistics from "./pages/admin/Statistics";
-import MemberChat from "./pages/member/Chat";
-import MemberDashboard from "./pages/member/Dashboard";
-import MemberEvents from "./pages/member/Events";
-import MemberForum from "./pages/member/Forum";
-import MemberProfile from "./pages/member/Profile";
-import PresidentChannelManagement from "./pages/president/ChannelManagement";
-import PresidentDashboard from "./pages/president/Dashboard";
-import PresidentEventRequestCreation from "./pages/president/EventRequestCreation";
-import PresidentEventRequestsList from "./pages/president/EventRequestsList";
-import PresidentForum from "./pages/president/Forum";
-import PresidentMemberManagement from "./pages/president/MemberManagement";
-import PresidentProfile from "./pages/president/Profile";
-import StaffChannelManagement from "./pages/staff/ChannelManagement";
-import StaffDashboard from "./pages/staff/Dashboard";
-import StaffEventRequestCreation from "./pages/staff/EventRequestCreation";
-import StaffEventRequestsList from "./pages/staff/EventRequestsList";
-import StaffForum from "./pages/staff/Forum";
-import StaffProfile from "./pages/staff/Profile";
+import CreateClub from "./pages/admin/Create_club";
+import AdminClubDetails from "./pages/admin/ClubDetails";
+import RoleDashboard from "./pages/shared/RoleDashboard";
+import PresidentMembersPage from "./pages/shared/PresidentMembersPage";
+import ChannelsPage from "./pages/shared/ChannelsPage";
+import ForumPage from "./pages/shared/ForumPage";
+import PublicEventsPage from "./pages/shared/PublicEventsPage";
+import AdminModerationPage from "./pages/shared/AdminModerationPage";
+import ProfileSettingsPage from "./pages/shared/ProfileSettingsPage";
 
 export const router = createBrowserRouter([
   {
@@ -54,58 +32,58 @@ export const router = createBrowserRouter([
           {
             Component: () => <ProtectedRoute allowedRoles={["MEMBER"]} />,
             children: [
-              { path: "member/dashboard", Component: MemberDashboard },
-              { path: "member/events", Component: MemberEvents },
-              { path: "member/chat", Component: MemberChat },
-              { path: "member/forum", Component: MemberForum },
-              { path: "member/profile", Component: MemberProfile },
-              { path: "member/profile/:id", Component: MemberProfile },
+              { path: "member/dashboard", Component: RoleDashboard },
+              { path: "member/events", Component: PublicEventsPage },
+              { path: "member/chat", Component: ChannelsPage },
+              { path: "member/forum", Component: ForumPage },
+              { path: "member/profile", Component: ProfileSettingsPage },
+              { path: "member/profile/:id", Component: ProfileSettingsPage },
             ],
           },
           {
             Component: () => <ProtectedRoute allowedRoles={["STAFF"]} />,
             children: [
-              { path: "staff/dashboard", Component: StaffDashboard },
-              { path: "staff/event/new", Component: StaffEventRequestCreation },
-              { path: "staff/events", Component: StaffEventRequestsList },
-              { path: "staff/channels", Component: StaffChannelManagement },
-              { path: "staff/forum", Component: StaffForum },
-              { path: "staff/profile", Component: StaffProfile },
-              { path: "staff/profile/:id", Component: StaffProfile },
+              { path: "staff/dashboard", Component: RoleDashboard },
+              { path: "staff/event/new", Component: ForumPage },
+              { path: "staff/events", Component: PublicEventsPage },
+              { path: "staff/channels", Component: ChannelsPage },
+              { path: "staff/forum", Component: ForumPage },
+              { path: "staff/profile", Component: ProfileSettingsPage },
+              { path: "staff/profile/:id", Component: ProfileSettingsPage },
             ],
           },
           {
             Component: () => <ProtectedRoute allowedRoles={["PRESIDENT"]} />,
             children: [
-              { path: "president/dashboard", Component: PresidentDashboard },
-              { path: "president/members", Component: PresidentMemberManagement },
-              { path: "president/event/new", Component: PresidentEventRequestCreation },
-              { path: "president/events", Component: PresidentEventRequestsList },
-              { path: "president/channels", Component: PresidentChannelManagement },
-              { path: "president/forum", Component: PresidentForum },
-              { path: "president/profile", Component: PresidentProfile },
-              { path: "president/profile/:id", Component: PresidentProfile },
+              { path: "president/dashboard", Component: RoleDashboard },
+              { path: "president/members", Component: PresidentMembersPage },
+              { path: "president/event/new", Component: ForumPage },
+              { path: "president/events", Component: PublicEventsPage },
+              { path: "president/channels", Component: ChannelsPage },
+              { path: "president/forum", Component: ForumPage },
+              { path: "president/profile", Component: ProfileSettingsPage },
+              { path: "president/profile/:id", Component: ProfileSettingsPage },
             ],
           },
           {
             Component: () => <ProtectedRoute allowedRoles={["ADMIN"]} />,
             children: [
-              { path: "admin/dashboard", Component: AdminDashboard },
+              { path: "admin/dashboard", Component: RoleDashboard },
               { path: "admin/clubs", Component: ClubsManagement },
               { path: "admin/clubs/create", Component: CreateClub },
               { path: "admin/clubs/:id", Component: AdminClubDetails },
-              { path: "admin/members", Component: AdminMemberManagement },
-              { path: "admin/events", Component: AdminEventRequests },
-              { path: "admin/communication", Component: AdminCommunication },
-              { path: "admin/forums", Component: AdminForums },
-              { path: "admin/statistics", Component: Statistics },
-              { path: "admin/profile/:id", Component: AdminProfile },
-              { path: "admin/settings/:id", Component: AdminSettings },
-              { path: "admin/notifications/:id", Component: AdminNotifications },
+              { path: "admin/members", Component: RoleDashboard },
+              { path: "admin/events", Component: AdminModerationPage },
+              { path: "admin/communication", Component: ChannelsPage },
+              { path: "admin/forums", Component: AdminModerationPage },
+              { path: "admin/statistics", Component: RoleDashboard },
+              { path: "admin/profile/:id", Component: ProfileSettingsPage },
+              { path: "admin/settings/:id", Component: ProfileSettingsPage },
+              { path: "admin/notifications/:id", Component: ProfileSettingsPage },
             ],
           },
-          { path: ":role/settings/:id", Component: Settings },
-          { path: ":role/notifications/:id", Component: Notifications },
+          { path: ":role/settings/:id", Component: ProfileSettingsPage },
+          { path: ":role/notifications/:id", Component: ProfileSettingsPage },
         ],
       },
       { path: "*", Component: NotFound },

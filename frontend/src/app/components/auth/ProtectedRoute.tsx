@@ -22,5 +22,9 @@ export default function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
     return <Navigate to="/login" replace />;
   }
 
+  if (user.role === "VICE_PRESIDENT" && allowedRoles?.includes("PRESIDENT")) {
+    return <Outlet />;
+  }
+
   return <Outlet />;
 }

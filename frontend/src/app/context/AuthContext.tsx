@@ -28,6 +28,7 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   login: (payload: LoginPayload) => Promise<AuthUser>;
   registerMember: (payload: RegisterPayload) => Promise<RegisterResponse>;
+  changePassword: (payload: { currentPassword: string; newPassword: string }) => Promise<AuthUser>;
   logout: () => void;
   refreshMe: () => Promise<void>;
 };
@@ -96,6 +97,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
     });
   };
 
+  const changePassword = async (payload: { currentPassword: string; newPassword: string }) => {
+    const response = await apiRequest<{ message: string; user: AuthUser }>("/auth/change-password", {
+      method: "PUT",
+      token,
+      body: JSON.stringify(payload),
+    });
+
+    if (token) {
+      persistSession(token, response.user);
+    }
+
+    return response.user;
+  };
+
   const logout = () => {
     clearSession();
   };
@@ -109,6 +124,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         isAuthenticated: Boolean(token && user),
         login,
         registerMember,
+        changePassword,
         logout,
         refreshMe,
       }}

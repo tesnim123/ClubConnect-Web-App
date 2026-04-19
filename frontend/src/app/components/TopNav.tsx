@@ -17,7 +17,6 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
-import { currentUser } from "../data/mockData";
 import { getRoleSlug } from "../lib/auth";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
 import { Badge } from "../components/ui/badge";
@@ -81,10 +80,10 @@ const defaultNotifications: Notification[] = [
 ];
 
 export function TopNav({
-  userId = currentUser.id,
-  userName = `${currentUser.firstName} ${currentUser.lastName}`,
-  userAvatar = currentUser.avatar,
-  userRole = currentUser.roleLabel || "Membre",
+  userId = "me",
+  userName = "Utilisateur",
+  userAvatar = null,
+  userRole = "Membre",
   notificationCount: externalNotificationCount,
   onNotificationClick,
   onLogout,

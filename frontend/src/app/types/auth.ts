@@ -1,5 +1,15 @@
-export type UserRole = "ADMIN" | "STAFF" | "PRESIDENT" | "MEMBER";
+export type UserRole = "ADMIN" | "PRESIDENT" | "VICE_PRESIDENT" | "STAFF" | "MEMBER";
 export type UserStatus = "PENDING" | "ACCEPTED" | "REJECTED";
+export type StaffTitle =
+  | "PRESIDENT"
+  | "VICE_PRESIDENT"
+  | "SECRETARY"
+  | "TREASURER"
+  | "HR"
+  | "PROJECT_MANAGER"
+  | "SPONSO_MANAGER"
+  | "LOGISTIC_MANAGER"
+  | "STAFF";
 
 export type ClubSummary = {
   _id: string;
@@ -14,6 +24,8 @@ export type AuthUser = {
   role: UserRole;
   status: UserStatus;
   club: ClubSummary | string | null;
+  staffTitle?: StaffTitle | null;
+  mustChangePassword?: boolean;
 };
 
 export type LoginResponse = {

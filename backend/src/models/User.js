@@ -2,16 +2,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import { ROLES, STATUSES } from "../constants/index.js";
 
-const STAFF_TITLES = [
-  "PRESIDENT",
-  "VICE_PRESIDENT",
-  "SECRETARY",
-  "TREASURER",
-  "HR",
-  "PROJECT_MANAGER",
-  "SPONSO_MANAGER",
-  "LOGISTIC_MANAGER",
-];
+const STAFF_TITLES = ["PRESIDENT", "VICE_PRESIDENT", "SECRETARY", "TREASURER", "HR", "PROJECT_MANAGER", "SPONSO_MANAGER", "LOGISTIC_MANAGER", "STAFF"];
 
 const userSchema = new mongoose.Schema(
   {
@@ -53,6 +44,10 @@ const userSchema = new mongoose.Schema(
       ref: "Club",
       default: null,
     },
+    mustChangePassword: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
@@ -82,6 +77,7 @@ userSchema.methods.toSafeObject = function toSafeObject() {
     status: this.status,
     staffTitle: this.staffTitle,
     club: this.club,
+    mustChangePassword: this.mustChangePassword,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
   };

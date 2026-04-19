@@ -7,6 +7,8 @@ import adminRoutes from "./routes/adminRoutes.js";
 import presidentRoutes from "./routes/presidentRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import clubRoutes from "./routes/clubRoutes.js";
+import channelRoutes from "./routes/channelRoutes.js";
+import postRoutes from "./routes/postRoutes.js";
 import { errorHandler, notFound } from "./middlewares/errorMiddleware.js";
 
 dotenv.config();
@@ -31,6 +33,8 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/president", presidentRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/clubs", clubRoutes);
+app.use("/api/channels", channelRoutes);
+app.use("/api/posts", postRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

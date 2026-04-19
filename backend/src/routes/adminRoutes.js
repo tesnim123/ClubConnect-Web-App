@@ -5,6 +5,9 @@ import {
   deleteClub,
   getAdminClubById,
   getAdminClubs,
+  getPendingPosts,
+  publishPost,
+  rejectPost,
   updateClub,
 } from "../controllers/adminController.js";
 import { ROLES } from "../constants/index.js";
@@ -20,5 +23,8 @@ router.get("/clubs/:id", getAdminClubById);
 router.put("/clubs/:id", updateClub);
 router.delete("/clubs/:id", deleteClub);
 router.post("/create-staff", createStaff);
+router.get("/posts/pending", getPendingPosts);
+router.patch("/posts/:id/publish", publishPost);
+router.patch("/posts/:id/reject", rejectPost);
 
 export default router;
