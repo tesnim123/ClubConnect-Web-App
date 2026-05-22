@@ -1,5 +1,5 @@
 import express from "express";
-import { acceptMember, addStaffMember, createCustomClubChannel, rejectMember } from "../controllers/presidentController.js";
+import { acceptMember, addStaffMember, createCustomClubChannel, rejectMember, removeMember, editMemberRole } from "../controllers/presidentController.js";
 import { getPendingMembersForMyClub } from "../controllers/userController.js";
 import { protect } from "../middlewares/authMiddleware.js";
 import { authorizeRoles } from "../middlewares/roleMiddleware.js";
@@ -13,5 +13,7 @@ router.put("/accept-member/:id", acceptMember);
 router.put("/reject-member/:id", rejectMember);
 router.post("/staff", authorizeRoles(ROLES.PRESIDENT), addStaffMember);
 router.post("/channels", authorizeRoles(ROLES.PRESIDENT), createCustomClubChannel);
+router.delete("/members/:id", removeMember);
+router.put("/members/:id/role", editMemberRole);
 
 export default router;

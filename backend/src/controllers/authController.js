@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { Club } from "../models/Club.js";
 import { User } from "../models/User.js";
+import { ClubApplication } from "../models/ClubApplication.js";
 import { ROLES, STAFF_ROLES, STATUSES } from "../constants/index.js";
 import { ApiError } from "../utils/ApiError.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -39,10 +40,12 @@ export const login = asyncHandler(async (req, res) => {
 });
 
 export const registerMember = asyncHandler(async (req, res) => {
-  const { name, email, password, clubId } = req.body;
+  const { name, email, password, clubId, clubIds, phone } = req.body;
 
-  if (!name || !email || !password || !clubId) {
-    throw new ApiError(400, "name, email, password et clubId sont obligatoires.");
+  const clubIdsArray = Array.isArray(clubIds) ? clubIds : (clubId ? [clubId] : []);
+
+  if (!name || !email || !password || clubIdsArray.length === 0) {
+    throw new ApiError(400, "name, email, password et au moins un clubId sont obligatoires.");
   }
 
   const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -50,10 +53,13 @@ export const registerMember = asyncHandler(async (req, res) => {
     throw new ApiError(409, "Un compte existe deja avec cet email.");
   }
 
-  const club = await Club.findById(clubId);
-  if (!club) {
-    throw new ApiError(404, "Club introuvable.");
+  // Validate all clubs exist
+  const clubs = await Club.find({ _id: { $in: clubIdsArray } });
+  if (clubs.length !== clubIdsArray.length) {
+    throw new ApiError(404, "Un ou plusieurs clubs selectionnes sont introuvables.");
   }
+
+  const firstClubId = clubIdsArray[0];
 
   const user = await User.create({
     name,
@@ -61,11 +67,25 @@ export const registerMember = asyncHandler(async (req, res) => {
     password,
     role: ROLES.MEMBER,
     status: STATUSES.PENDING,
-    club: club._id,
+    club: firstClubId, // default club for backward compatibility
+    clubs: [],
+    pendingClubs: clubIdsArray,
+    phone: phone || null,
   });
 
+  // Create individual club application records
+  await Promise.all(
+    clubIdsArray.map((cid) =>
+      ClubApplication.create({
+        user: user._id,
+        club: cid,
+        status: STATUSES.PENDING,
+      })
+    )
+  );
+
   res.status(201).json({
-    message: "Inscription enregistree. En attente de validation par le president ou le vice-president.",
+    message: "Inscription enregistree. En attente de validation par les presidents des clubs selectionnes.",
     user: user.toSafeObject(),
   });
 });

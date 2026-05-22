@@ -44,9 +44,26 @@ const userSchema = new mongoose.Schema(
       ref: "Club",
       default: null,
     },
+    clubs: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Club",
+      },
+    ],
+    pendingClubs: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Club",
+      },
+    ],
     mustChangePassword: {
       type: Boolean,
       default: false,
+    },
+    phone: {
+      type: String,
+      default: null,
+      trim: true,
     },
   },
   {
@@ -77,6 +94,9 @@ userSchema.methods.toSafeObject = function toSafeObject() {
     status: this.status,
     staffTitle: this.staffTitle,
     club: this.club,
+    clubs: this.clubs || [],
+    pendingClubs: this.pendingClubs || [],
+    phone: this.phone,
     mustChangePassword: this.mustChangePassword,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,

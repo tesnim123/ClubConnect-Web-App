@@ -3,10 +3,11 @@ import { Channel } from "../models/Channel.js";
 import { User } from "../models/User.js";
 import { Post } from "../models/Post.js";
 import { Message } from "../models/Message.js";
+import { ClubApplication } from "../models/ClubApplication.js";
 import { ApiError } from "../utils/ApiError.js";
 import { generateRandomPassword } from "../utils/generatePassword.js";
 import { sendTemporaryCredentialsEmail } from "./emailService.js";
-import { addUserToSystemChannels, createCustomChannel, createDefaultClubChannels, createGlobalSystemChannels } from "./channelService.js";
+import { addUserToSystemChannels, createCustomChannel, createDefaultClubChannels, createGlobalSystemChannels, removeUserFromClubChannels } from "./channelService.js";
 import { ROLES, STATUSES } from "../constants/index.js";
 import { emitChannelMembershipSync, getIO, getUserRoom } from "./socketService.js";
 
@@ -189,10 +190,32 @@ export const addStaffMemberToClub = async ({ clubId, name, email, staffTitle, re
   };
 };
 
-export const acceptMemberIntoClub = async ({ member, approver }) => {
-  const club = await Club.findById(member.club);
+export const acceptMemberIntoClub = async ({ member, approver, clubId }) => {
+  const targetClubId = clubId || member.club;
+  const club = await Club.findById(targetClubId);
   if (!club) {
     throw new ApiError(404, "Club introuvable.");
+  }
+
+  // Update ClubApplication
+  await ClubApplication.findOneAndUpdate(
+    { user: member._id, club: club._id },
+    { status: STATUSES.ACCEPTED },
+    { upsert: true }
+  );
+
+  // Update User
+  if (!member.clubs) member.clubs = [];
+  if (!member.pendingClubs) member.pendingClubs = [];
+
+  member.pendingClubs = member.pendingClubs.filter(cid => String(cid) !== String(club._id));
+  if (!member.clubs.some(cid => String(cid) === String(club._id))) {
+    member.clubs.push(club._id);
+  }
+
+  // Update primary club field if not already set or null
+  if (!member.club) {
+    member.club = club._id;
   }
 
   member.status = STATUSES.ACCEPTED;
@@ -245,4 +268,93 @@ export const createPresidentCustomChannel = async ({ clubId, name, description, 
   await Promise.all(Array.from(allowedIds).map((userId) => emitChannelMembershipSync(userId)));
 
   return channel;
+};
+
+export const removeMemberFromClub = async ({ member, clubId }) => {
+  const club = await Club.findById(clubId);
+  if (!club) {
+    throw new ApiError(404, "Club introuvable.");
+  }
+
+  // Remove from club members, staff, vicePresident
+  club.members = club.members.filter((id) => String(id) !== String(member._id));
+  club.staff = club.staff.filter((id) => String(id) !== String(member._id));
+  if (String(club.vicePresident) === String(member._id)) {
+    club.vicePresident = null;
+  }
+  await club.save();
+
+  // Remove from user clubs
+  if (!member.clubs) member.clubs = [];
+  member.clubs = member.clubs.filter((cid) => String(cid) !== String(club._id));
+  member.pendingClubs = member.pendingClubs.filter((cid) => String(cid) !== String(club._id));
+
+  if (String(member.club) === String(club._id)) {
+    member.club = member.clubs[0] || null;
+  }
+
+  if (member.clubs.length === 0) {
+    member.status = STATUSES.PENDING;
+    member.role = ROLES.MEMBER;
+    member.staffTitle = null;
+  }
+  await member.save();
+
+  // Delete applications
+  await ClubApplication.deleteMany({ user: member._id, club: club._id });
+
+  // Sync channels
+  await removeUserFromClubChannels({ user: member, club });
+  await emitChannelMembershipSync(member._id);
+
+  return club;
+};
+
+export const updateMemberRoleInClub = async ({ member, clubId, role, staffTitle }) => {
+  const club = await Club.findById(clubId);
+  if (!club) {
+    throw new ApiError(404, "Club introuvable.");
+  }
+
+  const isStaff = [ROLES.STAFF, ROLES.VICE_PRESIDENT, ROLES.PRESIDENT].includes(role);
+
+  // Update user roles and titles
+  member.role = role;
+  member.staffTitle = isStaff ? (staffTitle || "STAFF") : null;
+  await member.save();
+
+  // Sync club fields
+  if (isStaff) {
+    // Add to staff list
+    if (!club.staff.some((id) => String(id) === String(member._id))) {
+      club.staff.push(member._id);
+    }
+    // Remove from basic members list
+    club.members = club.members.filter((id) => String(id) !== String(member._id));
+
+    // Handle VP role change
+    if (role === ROLES.VICE_PRESIDENT) {
+      club.vicePresident = member._id;
+    } else if (String(club.vicePresident) === String(member._id)) {
+      club.vicePresident = null;
+    }
+  } else {
+    // Demoted to basic member
+    if (!club.members.some((id) => String(id) === String(member._id))) {
+      club.members.push(member._id);
+    }
+    club.staff = club.staff.filter((id) => String(id) !== String(member._id));
+    if (String(club.vicePresident) === String(member._id)) {
+      club.vicePresident = null;
+    }
+  }
+
+  await club.save();
+
+  // Update channel permissions/sync
+  const adminIds = await getAdminIds();
+  await addUserToSystemChannels({ user: member, club, adminIds });
+  await emitChannelMembershipSync(member._id);
+
+  return club;
 };

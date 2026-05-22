@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "react-router";
-import { Calendar, Edit2, Mail, Shield, Users } from "lucide-react";
+import { Calendar, Edit2, Mail, Shield, Users, Phone } from "lucide-react";
+import { toast } from "sonner";
 import { Sidebar } from "../../components/Sidebar";
 import { TopNav } from "../../components/TopNav";
 import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar";
@@ -11,20 +12,57 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Separator } from "../../components/ui/separator";
 import { Switch } from "../../components/ui/switch";
-import { members } from "../../data/mockData";
+import { useAuth } from "../../context/AuthContext";
 
 export default function StaffProfile() {
   const location = useLocation();
+  const { user, updateProfile } = useAuth();
   const isPresidentView = location.pathname.startsWith("/president");
-  const actor = isPresidentView
-    ? members.find((member) => member.role === "president") ?? members[0]
-    : members.find((member) => member.role === "staff") ?? members[0];
+  
   const [isEditing, setIsEditing] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  
+  const actor = {
+    id: user?._id || "1",
+    firstName: user?.name.split(" ")[0] || "",
+    lastName: user?.name.split(" ").slice(1).join(" ") || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+    clubName: typeof user?.club === 'object' ? user.club?.name : "Club",
+    joinDate: new Date(user?.createdAt || Date.now()).getFullYear().toString(),
+  };
+
   const [formData, setFormData] = useState({
     firstName: actor.firstName,
     lastName: actor.lastName,
     email: actor.email,
+    phone: actor.phone || "",
   });
+
+  useEffect(() => {
+    setFormData({
+      firstName: actor.firstName,
+      lastName: actor.lastName,
+      email: actor.email,
+      phone: actor.phone || "",
+    });
+  }, [user]);
+
+  const handleSave = async () => {
+    setIsUpdating(true);
+    try {
+      await updateProfile({
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        phone: formData.phone,
+      });
+      toast.success("Profil mis à jour");
+      setIsEditing(false);
+    } catch (error) {
+      toast.error("Erreur lors de la mise à jour");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   return (
     <div className="flex h-screen">
@@ -110,14 +148,25 @@ export default function StaffProfile() {
                       <Input
                         id="email"
                         type="email"
+                        disabled
                         value={formData.email}
                         onChange={(event) => setFormData({ ...formData, email: event.target.value })}
+                        className="mt-1 opacity-50"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="phone">Téléphone</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(event) => setFormData({ ...formData, phone: event.target.value })}
                         className="mt-1"
                       />
                     </div>
                     <div className="flex gap-2">
-                      <Button onClick={() => setIsEditing(false)} className="bg-[#0EA8A8] hover:bg-[#0c8e8e]">
-                        Enregistrer
+                      <Button onClick={handleSave} disabled={isUpdating} className="bg-[#0EA8A8] hover:bg-[#0c8e8e]">
+                        {isUpdating ? "Enregistrement..." : "Enregistrer"}
                       </Button>
                       <Button variant="outline" onClick={() => setIsEditing(false)}>
                         Annuler
@@ -131,6 +180,14 @@ export default function StaffProfile() {
                       <div>
                         <p className="text-sm text-gray-600">Email</p>
                         <p className="font-semibold text-[#1B2A4A]">{actor.email}</p>
+                      </div>
+                    </div>
+                    <Separator />
+                    <div className="flex items-center gap-3">
+                      <Phone className="w-5 h-5 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600">Téléphone</p>
+                        <p className="font-semibold text-[#1B2A4A]">{actor.phone || "Non renseigné"}</p>
                       </div>
                     </div>
                     <Separator />

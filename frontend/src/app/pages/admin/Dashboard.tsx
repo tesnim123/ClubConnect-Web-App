@@ -11,6 +11,9 @@ import {
 } from "lucide-react";
 import { Link } from "react-router";
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import Papa from "papaparse";
 import { Sidebar } from "../../components/Sidebar";
 import { TopNav } from "../../components/TopNav";
 import { Card } from "../../components/ui/card";
@@ -34,6 +37,43 @@ export default function AdminDashboard() {
   }));
 
   const colors = ["#0EA8A8", "#1B2A4A", "#F5A623", "#10B981", "#2563EB"];
+
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    doc.text("Rapport d'activité des clubs", 14, 15);
+    
+    const tableData = clubs.map(club => [
+      club.name,
+      club.memberCount.toString(),
+      events.filter(e => e.clubId === club.id).length.toString()
+    ]);
+
+    autoTable(doc, {
+      head: [["Club", "Membres", "Événements"]],
+      body: tableData,
+      startY: 20,
+    });
+
+    doc.save("rapport-clubs-dashboard.pdf");
+  };
+
+  const exportCSV = () => {
+    const csvData = clubs.map(club => ({
+      Club: club.name,
+      Membres: club.memberCount,
+      Evenements: events.filter(e => e.clubId === club.id).length
+    }));
+    
+    const csv = Papa.unparse(csvData);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "rapport-clubs-dashboard.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="flex h-screen bg-[#EEF4F6]">
@@ -224,7 +264,7 @@ export default function AdminDashboard() {
 
           <Card className="rounded-[1.75rem] border-0 bg-white/85 p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
             <h2 className="mb-4 text-xl font-bold text-[#10233F]">Actions rapides</h2>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
               <Button className="h-auto bg-[#0EA8A8] py-6 hover:bg-[#0c8e8e]" asChild>
                 <Link to="/admin/clubs/create">
                   <div className="flex flex-col items-center gap-2">
@@ -241,13 +281,17 @@ export default function AdminDashboard() {
                   </div>
                 </Link>
               </Button>
-              <Button className="h-auto bg-[#F5A623] py-6 hover:bg-[#e09615]" asChild>
-                <Link to="/admin/statistics">
-                  <div className="flex flex-col items-center gap-2">
-                    <Download className="h-8 w-8" />
-                    <span>Télécharger rapport</span>
-                  </div>
-                </Link>
+              <Button className="h-auto bg-[#F5A623] py-6 hover:bg-[#e09615]" onClick={exportPDF}>
+                <div className="flex flex-col items-center gap-2">
+                  <Download className="h-8 w-8" />
+                  <span>Exporter PDF</span>
+                </div>
+              </Button>
+              <Button className="h-auto border border-[#F5A623] text-[#F5A623] bg-transparent py-6 hover:bg-[#F5A623]/10" onClick={exportCSV}>
+                <div className="flex flex-col items-center gap-2">
+                  <Download className="h-8 w-8" />
+                  <span>Exporter CSV</span>
+                </div>
               </Button>
             </div>
           </Card>

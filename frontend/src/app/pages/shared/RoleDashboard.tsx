@@ -9,6 +9,9 @@ import { apiRequest } from "../../lib/api";
 import { getRoleLabel, getRoleSection } from "../../lib/role";
 import type { AdminClub, Channel, ClubPost } from "../../types/club";
 import type { AuthUser } from "../../types/auth";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import Papa from "papaparse";
 
 type PendingResponse = { items: AuthUser[] };
 
@@ -49,6 +52,43 @@ export default function RoleDashboard() {
   const myClubName = typeof user?.club === "object" ? user.club?.name : null;
   const totalMembers = useMemo(() => clubs.reduce((sum, club) => sum + club.members.length, 0), [clubs]);
 
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    doc.text("Rapport d'activité des clubs", 14, 15);
+    
+    const tableData = clubs.map(club => [
+      club.name,
+      club.staff.length.toString(),
+      club.members.length.toString()
+    ]);
+
+    autoTable(doc, {
+      head: [["Club", "Staff", "Membres"]],
+      body: tableData,
+      startY: 20,
+    });
+
+    doc.save("rapport-clubs.pdf");
+  };
+
+  const exportCSV = () => {
+    const csvData = clubs.map(club => ({
+      Club: club.name,
+      Staff: club.staff.length,
+      Membres: club.members.length
+    }));
+    
+    const csv = Papa.unparse(csvData);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "rapport-clubs.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const stats = section === "admin"
     ? [
         { label: "Clubs", value: clubs.length, icon: Building2 },
@@ -83,6 +123,12 @@ export default function RoleDashboard() {
             </Button>
             <Button asChild variant="outline">
               <Link to="/admin/forums">Moderer les posts</Link>
+            </Button>
+            <Button variant="outline" onClick={exportPDF} className="bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border-indigo-200">
+              Exporter PDF
+            </Button>
+            <Button variant="outline" onClick={exportCSV} className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200">
+              Exporter CSV
             </Button>
           </>
         ) : section === "president" ? (

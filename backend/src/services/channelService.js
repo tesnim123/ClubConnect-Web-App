@@ -127,3 +127,11 @@ export const createCustomChannel = async ({ name, description, clubId, memberIds
 
 export const getUserChannels = async (userId) =>
   Channel.find({ members: userId }).sort({ updatedAt: -1 }).populate("club", "name").populate("members", "name email role status");
+
+export const removeUserFromClubChannels = async ({ user, club }) => {
+  const channels = await Channel.find({ club: club._id });
+  for (const channel of channels) {
+    channel.members = channel.members.filter((memberId) => String(memberId) !== String(user._id));
+    await channel.save();
+  }
+};

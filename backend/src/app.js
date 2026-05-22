@@ -9,6 +9,7 @@ import userRoutes from "./routes/userRoutes.js";
 import clubRoutes from "./routes/clubRoutes.js";
 import channelRoutes from "./routes/channelRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
+import eventRoutes from "./routes/eventRoutes.js";
 import { errorHandler, notFound } from "./middlewares/errorMiddleware.js";
 
 dotenv.config();
@@ -21,8 +22,14 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(morgan("dev"));
+
+app.use((_req, res, next) => {
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  next();
+});
 
 app.get("/api/health", (_req, res) => {
   res.status(200).json({ message: "API is running" });
@@ -35,6 +42,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/clubs", clubRoutes);
 app.use("/api/channels", channelRoutes);
 app.use("/api/posts", postRoutes);
+app.use("/api/events", eventRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

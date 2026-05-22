@@ -23,10 +23,12 @@ export default function Signup() {
     firstName: "",
     lastName: "",
     email: "",
+    phone: "",
     password: "",
     confirmPassword: "",
     clubId: "",
   });
+  const [selectedClubIds, setSelectedClubIds] = useState<string[]>([]);
   const [clubs, setClubs] = useState<ClubSummary[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -45,11 +47,22 @@ export default function Signup() {
     void loadClubs();
   }, []);
 
+  const toggleClub = (id: string) => {
+    setSelectedClubIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
       toast.error("Les mots de passe ne correspondent pas");
+      return;
+    }
+
+    if (selectedClubIds.length === 0) {
+      toast.error("Veuillez sélectionner au moins un club à rejoindre");
       return;
     }
 
@@ -59,13 +72,18 @@ export default function Signup() {
       await registerMember({
         name: `${formData.firstName} ${formData.lastName}`.trim(),
         email: formData.email,
+        phone: formData.phone || undefined,
         password: formData.password,
-        clubId: formData.clubId,
+        clubId: selectedClubIds[0] || "",
+        clubIds: selectedClubIds,
       });
       toast.success("Demande envoyée. En attente de validation.");
       navigate("/pending");
     } catch (error) {
-      const message = error instanceof ApiClientError ? error.message : "Inscription impossible";
+      const message =
+        error instanceof ApiClientError
+          ? error.message
+          : "Inscription impossible";
       toast.error(message);
     } finally {
       setIsSubmitting(false);
@@ -90,7 +108,9 @@ export default function Signup() {
               <Input
                 id="firstName"
                 value={formData.firstName}
-                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, firstName: e.target.value })
+                }
                 required
                 className="mt-1"
               />
@@ -100,24 +120,43 @@ export default function Signup() {
               <Input
                 id="lastName"
                 value={formData.lastName}
-                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, lastName: e.target.value })
+                }
                 required
                 className="mt-1"
               />
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="votre.email@clubconnect.com"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
-              className="mt-1"
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="votre.email@clubconnect.com"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                required
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="phone">Téléphone</Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="Ex: +216 22 123 456"
+                value={formData.phone}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
+                className="mt-1"
+              />
+            </div>
           </div>
 
           <div>
@@ -126,7 +165,9 @@ export default function Signup() {
               id="password"
               type="password"
               value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, password: e.target.value })
+              }
               required
               className="mt-1"
             />
@@ -138,35 +179,47 @@ export default function Signup() {
               id="confirmPassword"
               type="password"
               value={formData.confirmPassword}
-              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, confirmPassword: e.target.value })
+              }
               required
               className="mt-1"
             />
           </div>
 
           <div>
-            <Label htmlFor="club">Club à rejoindre</Label>
-            <Select
-              value={formData.clubId}
-              onValueChange={(value) => setFormData({ ...formData, clubId: value })}
-            >
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Sélectionnez un club" />
-              </SelectTrigger>
-              <SelectContent>
-                {clubs.map((club) => (
-                  <SelectItem key={club._id} value={club._id}>
-                    {club.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label className="block text-sm font-semibold text-gray-700">Clubs à rejoindre (sélection multiple)</Label>
+            <div className="mt-2 grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-1 border rounded-lg bg-white">
+              {clubs.map((club) => {
+                const isSelected = selectedClubIds.includes(club._id);
+                return (
+                  <button
+                    key={club._id}
+                    type="button"
+                    onClick={() => toggleClub(club._id)}
+                    className={`flex items-center justify-between p-3 rounded-xl border text-left text-sm transition-all duration-200 ${
+                      isSelected
+                        ? "border-[#0EA8A8] bg-[#0EA8A8]/10 text-[#0c8e8e] font-semibold shadow-sm"
+                        : "border-slate-200 hover:border-slate-300 text-slate-700 bg-slate-50"
+                    }`}
+                  >
+                    <span className="truncate">{club.name}</span>
+                    {isSelected && (
+                      <span className="w-2 h-2 rounded-full bg-[#0EA8A8] shrink-0 ml-2" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {selectedClubIds.length === 0 && (
+              <p className="mt-1 text-xs text-red-500">Veuillez sélectionner au moins un club.</p>
+            )}
           </div>
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
             <p>
-              Votre demande sera examinée par le président du club sélectionné. Vous pourrez vous
-              connecter après acceptation.
+              Votre demande sera examinée par le président du club sélectionné.
+              Vous pourrez vous connecter après acceptation.
             </p>
           </div>
 
@@ -180,7 +233,10 @@ export default function Signup() {
 
           <p className="text-center text-sm text-gray-600 mt-4">
             Déjà un compte ?{" "}
-            <Link to="/login" className="text-[#0EA8A8] hover:underline font-semibold">
+            <Link
+              to="/login"
+              className="text-[#0EA8A8] hover:underline font-semibold"
+            >
               Se connecter
             </Link>
           </p>

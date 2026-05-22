@@ -24,8 +24,11 @@ export type AuthUser = {
   role: UserRole;
   status: UserStatus;
   club: ClubSummary | string | null;
+  clubs?: Array<ClubSummary | string>;
+  pendingClubs?: Array<ClubSummary | string>;
   staffTitle?: StaffTitle | null;
   mustChangePassword?: boolean;
+  phone?: string | null;
 };
 
 export type LoginResponse = {

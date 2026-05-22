@@ -6,7 +6,12 @@ import {
   type PropsWithChildren,
 } from "react";
 import { apiRequest, ApiClientError } from "../lib/api";
-import { clearStoredSession, getStoredAuthUser, TOKEN_KEY, USER_KEY } from "../lib/auth";
+import {
+  clearStoredSession,
+  getStoredAuthUser,
+  TOKEN_KEY,
+  USER_KEY,
+} from "../lib/auth";
 import type { AuthUser, LoginResponse, RegisterResponse } from "../types/auth";
 
 type LoginPayload = {
@@ -19,6 +24,8 @@ type RegisterPayload = {
   email: string;
   password: string;
   clubId: string;
+  clubIds?: string[];
+  phone?: string;
 };
 
 type AuthContextValue = {
@@ -28,7 +35,11 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   login: (payload: LoginPayload) => Promise<AuthUser>;
   registerMember: (payload: RegisterPayload) => Promise<RegisterResponse>;
-  changePassword: (payload: { currentPassword: string; newPassword: string }) => Promise<AuthUser>;
+  changePassword: (payload: {
+    currentPassword: string;
+    newPassword: string;
+  }) => Promise<AuthUser>;
+  updateProfile: (payload: { name?: string; phone?: string }) => Promise<AuthUser>;
   logout: () => void;
   refreshMe: () => Promise<void>;
 };
@@ -36,7 +47,9 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: PropsWithChildren) {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY));
+  const [token, setToken] = useState<string | null>(() =>
+    localStorage.getItem(TOKEN_KEY),
+  );
   const [user, setUser] = useState<AuthUser | null>(() => getStoredAuthUser());
   const [loading, setLoading] = useState(false);
 
@@ -79,16 +92,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    
+
     // Immediately update state and localStorage
     localStorage.setItem(TOKEN_KEY, response.token);
     localStorage.setItem(USER_KEY, JSON.stringify(response.user));
-    
+
     // Update React state
     setToken(response.token);
     setUser(response.user);
     setLoading(false);
-    
+
     return response.user;
   };
 
@@ -99,12 +112,35 @@ export function AuthProvider({ children }: PropsWithChildren) {
     });
   };
 
-  const changePassword = async (payload: { currentPassword: string; newPassword: string }) => {
-    const response = await apiRequest<{ message: string; user: AuthUser }>("/auth/change-password", {
-      method: "PUT",
-      token,
-      body: JSON.stringify(payload),
-    });
+  const changePassword = async (payload: {
+    currentPassword: string;
+    newPassword: string;
+  }) => {
+    const response = await apiRequest<{ message: string; user: AuthUser }>(
+      "/auth/change-password",
+      {
+        method: "PUT",
+        token,
+        body: JSON.stringify(payload),
+      },
+    );
+
+    if (token) {
+      persistSession(token, response.user);
+    }
+
+    return response.user;
+  };
+
+  const updateProfile = async (payload: { name?: string; phone?: string }) => {
+    const response = await apiRequest<{ message: string; user: AuthUser }>(
+      "/users/me",
+      {
+        method: "PUT",
+        token,
+        body: JSON.stringify(payload),
+      },
+    );
 
     if (token) {
       persistSession(token, response.user);
@@ -127,6 +163,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         login,
         registerMember,
         changePassword,
+        updateProfile,
         logout,
         refreshMe,
       }}

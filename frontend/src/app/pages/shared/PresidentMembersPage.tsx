@@ -32,6 +32,11 @@ export default function PresidentMembersPage() {
     staffTitle: "STAFF" as StaffTitle,
   });
 
+  const [promotingId, setPromotingId] = useState<string | null>(null);
+  const [promoTitle, setPromoTitle] = useState<StaffTitle>("STAFF");
+  const [searchMember, setSearchMember] = useState("");
+  const [searchStaff, setSearchStaff] = useState("");
+
   const clubId = typeof user?.club === "object" ? user.club?._id : user?.club;
 
   const load = async () => {
@@ -62,7 +67,7 @@ export default function PresidentMembersPage() {
       token,
     });
 
-    toast.success(action === "accept" ? "Membre accepte." : "Membre rejete.");
+    toast.success(action === "accept" ? "Membre accepté." : "Membre rejeté.");
     await load();
   };
 
@@ -78,7 +83,7 @@ export default function PresidentMembersPage() {
         body: JSON.stringify(staffForm),
       });
 
-      toast.success("Staff ajoute et email envoye.");
+      toast.success("Staff ajouté et email envoyé.");
       setStaffForm({ name: "", email: "", staffTitle: "STAFF" });
       await load();
     } catch (error) {
@@ -87,37 +92,172 @@ export default function PresidentMembersPage() {
     }
   };
 
+  const handleRemoveMember = async (memberId: string) => {
+    if (!token) return;
+    if (!window.confirm("Êtes-vous sûr de vouloir retirer ce membre du club ?")) {
+      return;
+    }
+
+    try {
+      await apiRequest(`/president/members/${memberId}`, {
+        method: "DELETE",
+        token,
+      });
+      toast.success("Membre retiré du club avec succès.");
+      await load();
+    } catch (error) {
+      const message = error instanceof ApiClientError ? error.message : "Retrait impossible";
+      toast.error(message);
+    }
+  };
+
+  const handleUpdateRole = async (memberId: string, role: string, staffTitle: StaffTitle | null) => {
+    if (!token) return;
+    try {
+      await apiRequest(`/president/members/${memberId}/role`, {
+        method: "PUT",
+        token,
+        body: JSON.stringify({ role, staffTitle }),
+      });
+      toast.success("Rôle mis à jour avec succès.");
+      setPromotingId(null);
+      await load();
+    } catch (error) {
+      const message = error instanceof ApiClientError ? error.message : "Mise à jour impossible";
+      toast.error(message);
+    }
+  };
+
+  // Filters
+  const filteredMembers = club?.members.filter((m) =>
+    m.name.toLowerCase().includes(searchMember.toLowerCase()) ||
+    m.email.toLowerCase().includes(searchMember.toLowerCase())
+  ) || [];
+
+  const filteredStaff = club?.staff.filter((m) =>
+    m.name.toLowerCase().includes(searchStaff.toLowerCase()) ||
+    m.email.toLowerCase().includes(searchStaff.toLowerCase())
+  ) || [];
+
   return (
     <AppShell
       title="Gestion des membres"
-      description="Validez les demandes d'adhesion et ajoutez les membres du bureau."
+      description="Validez les demandes d'adhésion, gérez les rôles et ajoutez les membres du bureau."
       sectionOverride="president"
     >
-      <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-        <Card className="rounded-[1.5rem] border-0 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-          <h2 className="text-xl font-bold text-[#10233F]">Demandes en attente</h2>
-          <div className="mt-5 space-y-4">
-            {pending.map((member) => (
-              <div key={member._id} className="rounded-2xl border border-slate-100 p-4">
-                <p className="font-semibold text-[#10233F]">{member.name}</p>
-                <p className="mt-1 text-sm text-gray-500">{member.email}</p>
-                <div className="mt-4 flex gap-3">
-                  <Button onClick={() => void updateMemberStatus(member._id, "accept")} className="bg-emerald-600 hover:bg-emerald-700">
-                    <Check className="mr-2 h-4 w-4" />
-                    Accepter
-                  </Button>
-                  <Button onClick={() => void updateMemberStatus(member._id, "reject")} variant="destructive">
-                    <UserX className="mr-2 h-4 w-4" />
-                    Rejeter
-                  </Button>
+      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        {/* Left Column: Applications and General Members */}
+        <div className="space-y-6">
+          <Card className="rounded-[1.5rem] border-0 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
+            <h2 className="text-xl font-bold text-[#10233F]">Demandes en attente</h2>
+            <div className="mt-5 space-y-4">
+              {pending.map((member) => (
+                <div key={member._id} className="rounded-2xl border border-slate-100 p-4">
+                  <p className="font-semibold text-[#10233F]">{member.name}</p>
+                  <p className="mt-1 text-sm text-gray-500">{member.email}</p>
+                  <div className="mt-4 flex gap-3">
+                    <Button onClick={() => void updateMemberStatus(member._id, "accept")} className="bg-emerald-600 hover:bg-emerald-700">
+                      <Check className="mr-2 h-4 w-4" />
+                      Accepter
+                    </Button>
+                    <Button onClick={() => void updateMemberStatus(member._id, "reject")} variant="destructive">
+                      <UserX className="mr-2 h-4 w-4" />
+                      Rejeter
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
 
-            {pending.length === 0 ? <p className="text-sm text-gray-500">Aucune demande en attente.</p> : null}
-          </div>
-        </Card>
+              {pending.length === 0 ? <p className="text-sm text-gray-500">Aucune demande en attente.</p> : null}
+            </div>
+          </Card>
 
+          <Card className="rounded-[1.5rem] border-0 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <h2 className="text-xl font-bold text-[#10233F]">Membres du club ({club?.members.length || 0})</h2>
+              <Input
+                placeholder="Rechercher un membre..."
+                value={searchMember}
+                onChange={(e) => setSearchMember(e.target.value)}
+                className="max-w-xs h-9 text-sm"
+              />
+            </div>
+            <div className="mt-5 space-y-4">
+              {filteredMembers.map((member) => (
+                <div key={member._id} className="rounded-2xl border border-slate-100 p-4 flex flex-col justify-between sm:flex-row sm:items-center gap-4">
+                  <div>
+                    <p className="font-semibold text-[#10233F]">{member.name}</p>
+                    <p className="mt-1 text-sm text-gray-500">{member.email}</p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {promotingId === member._id ? (
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={promoTitle}
+                          onChange={(e) => setPromoTitle(e.target.value as StaffTitle)}
+                          className="h-9 rounded-md border border-gray-300 bg-white px-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0EA8A8]"
+                        >
+                          {STAFF_TITLES.map((title) => (
+                            <option key={title} value={title}>
+                              {title}
+                            </option>
+                          ))}
+                        </select>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            const role = (promoTitle === "VICE_PRESIDENT") ? "VICE_PRESIDENT" : "STAFF";
+                            void handleUpdateRole(member._id, role, promoTitle);
+                          }}
+                          className="bg-emerald-600 hover:bg-emerald-700 h-9 px-3"
+                        >
+                          Valider
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setPromotingId(null)}
+                          className="h-9 px-3 text-gray-500 hover:bg-gray-100"
+                        >
+                          Annuler
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        {canManageStaff && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setPromotingId(member._id);
+                              setPromoTitle("STAFF");
+                            }}
+                            className="border-[#0EA8A8] text-[#0EA8A8] hover:bg-[#0EA8A8]/10"
+                          >
+                            Promouvoir
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => void handleRemoveMember(member._id)}
+                        >
+                          Retirer
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {filteredMembers.length === 0 ? (
+                <p className="text-sm text-gray-500">Aucun membre ne correspond à la recherche.</p>
+              ) : null}
+            </div>
+          </Card>
+        </div>
+
+        {/* Right Column: Staff management */}
         <div className="space-y-6">
           {canManageStaff ? (
             <Card className="rounded-[1.5rem] border-0 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
@@ -154,17 +294,101 @@ export default function PresidentMembersPage() {
           ) : null}
 
           <Card className="rounded-[1.5rem] border-0 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-            <h2 className="text-xl font-bold text-[#10233F]">Equipe du club</h2>
-            <div className="mt-5 space-y-3">
-              {club?.staff.map((member) => (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <h2 className="text-xl font-bold text-[#10233F]">Équipe du club ({club?.staff.length || 0})</h2>
+              <Input
+                placeholder="Rechercher dans le staff..."
+                value={searchStaff}
+                onChange={(e) => setSearchStaff(e.target.value)}
+                className="max-w-xs h-9 text-sm"
+              />
+            </div>
+            <div className="mt-5 space-y-4">
+              {filteredStaff.map((member) => (
                 <div key={member._id} className="rounded-2xl border border-slate-100 p-4">
-                  <p className="font-semibold text-[#10233F]">{member.name}</p>
-                  <p className="mt-1 text-sm text-gray-500">{member.email}</p>
-                  <p className="mt-2 text-xs font-semibold text-[#0EA8A8]">{member.staffTitle || member.role}</p>
+                  <div className="flex flex-col justify-between md:flex-row md:items-start gap-4">
+                    <div>
+                      <p className="font-semibold text-[#10233F]">{member.name}</p>
+                      <p className="mt-1 text-sm text-gray-500">{member.email}</p>
+                      <span className="mt-2 inline-block rounded bg-teal-50 px-2 py-0.5 text-xs font-semibold text-[#0EA8A8]">
+                        {member.staffTitle || member.role}
+                      </span>
+                    </div>
+
+                    {canManageStaff && member._id !== user?._id && member.staffTitle !== "PRESIDENT" && (
+                      <div className="flex flex-wrap gap-2 md:justify-end">
+                        {promotingId === member._id ? (
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={promoTitle}
+                              onChange={(e) => setPromoTitle(e.target.value as StaffTitle)}
+                              className="h-8 rounded border border-gray-300 bg-white px-2 text-xs"
+                            >
+                              {STAFF_TITLES.map((title) => (
+                                <option key={title} value={title}>
+                                  {title}
+                                </option>
+                              ))}
+                            </select>
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                const role = (promoTitle === "VICE_PRESIDENT") ? "VICE_PRESIDENT" : "STAFF";
+                                void handleUpdateRole(member._id, role, promoTitle);
+                              }}
+                              className="bg-emerald-600 hover:bg-emerald-700 h-8 px-2.5"
+                            >
+                              OK
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setPromotingId(null)}
+                              className="h-8 px-2.5 text-gray-500 hover:bg-gray-100"
+                            >
+                              X
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setPromotingId(member._id);
+                                setPromoTitle(member.staffTitle || "STAFF");
+                              }}
+                              className="text-xs h-8"
+                            >
+                              Modifier
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => void handleUpdateRole(member._id, "MEMBER", null)}
+                              className="text-xs h-8 text-amber-600 border-amber-200 hover:bg-amber-50"
+                            >
+                              Rétrograder
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => void handleRemoveMember(member._id)}
+                              className="text-xs h-8"
+                            >
+                              Retirer
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
 
-              {club?.staff.length === 0 ? <p className="text-sm text-gray-500">Aucun staff configure.</p> : null}
+              {filteredStaff.length === 0 ? (
+                <p className="text-sm text-gray-500">Aucun staff ne correspond à la recherche.</p>
+              ) : null}
             </div>
           </Card>
         </div>

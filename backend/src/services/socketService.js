@@ -30,10 +30,10 @@ const socketAuthMiddleware = async (socket, next) => {
 };
 
 const registerRealtimeHandlers = (socket) => {
-  socket.on("channel:message", async ({ channelId, content }, callback = () => {}) => {
+  socket.on("channel:message", async ({ channelId, content, attachment, attachmentName, attachmentType, replyTo }, callback = () => {}) => {
     try {
-      if (!content?.trim()) {
-        return callback({ error: "Message content is required." });
+      if (!content?.trim() && !attachment) {
+        return callback({ error: "Message content or attachment is required." });
       }
 
       const channel = await Channel.findOne({ _id: channelId, members: socket.user._id });
@@ -44,17 +44,81 @@ const registerRealtimeHandlers = (socket) => {
       const message = await Message.create({
         channel: channel._id,
         sender: socket.user._id,
-        content: content.trim(),
+        content: content ? content.trim() : null,
+        attachment: attachment || null,
+        attachmentName: attachmentName || null,
+        attachmentType: attachmentType || null,
+        replyTo: replyTo || null,
       });
 
       const payload = await Message.findById(message._id)
         .populate("sender", "name email role")
-        .populate("channel", "name type");
+        .populate("channel", "name type")
+        .populate("replyTo", "content sender attachment");
 
       ioInstance.to(getChannelRoom(channel._id)).emit("channel:message:new", payload);
       callback({ message: payload });
     } catch (error) {
       callback({ error: error.message || "Unable to send message." });
+    }
+  });
+
+  socket.on("channel:message:delete", async ({ messageId }, callback = () => {}) => {
+    try {
+      const message = await Message.findById(messageId);
+      if (!message) return callback({ error: "Message not found" });
+
+      if (String(message.sender) !== String(socket.user._id) && !["ADMIN", "PRESIDENT", "VICE_PRESIDENT"].includes(socket.user.role)) {
+        return callback({ error: "Not authorized to delete this message" });
+      }
+
+      message.isDeleted = true;
+      message.content = "Ce message a été supprimé.";
+      message.attachment = null;
+      message.attachmentName = null;
+      message.attachmentType = null;
+      await message.save();
+
+      ioInstance.to(getChannelRoom(message.channel)).emit("channel:message:deleted", { messageId, content: message.content });
+      callback({ success: true });
+    } catch (error) {
+      callback({ error: error.message || "Unable to delete message." });
+    }
+  });
+
+  socket.on("channel:message:react", async ({ messageId, emoji }, callback = () => {}) => {
+    try {
+      const message = await Message.findById(messageId);
+      if (!message) return callback({ error: "Message not found" });
+
+      const reactionIndex = message.reactions.findIndex(r => r.emoji === emoji);
+      const userIdStr = String(socket.user._id);
+
+      if (reactionIndex > -1) {
+        const userIndex = message.reactions[reactionIndex].users.findIndex(u => String(u) === userIdStr);
+        if (userIndex > -1) {
+          message.reactions[reactionIndex].users.splice(userIndex, 1);
+          if (message.reactions[reactionIndex].users.length === 0) {
+            message.reactions.splice(reactionIndex, 1);
+          }
+        } else {
+          message.reactions[reactionIndex].users.push(socket.user._id);
+        }
+      } else {
+        message.reactions.push({ emoji, users: [socket.user._id] });
+      }
+
+      await message.save();
+      
+      const payload = await Message.findById(message._id)
+        .populate("sender", "name email role")
+        .populate("channel", "name type")
+        .populate("replyTo", "content sender attachment");
+
+      ioInstance.to(getChannelRoom(message.channel)).emit("channel:message:updated", payload);
+      callback({ success: true });
+    } catch (error) {
+      callback({ error: error.message || "Unable to react." });
     }
   });
 };
@@ -105,4 +169,11 @@ export const emitChannelMembershipSync = async (userId) => {
     userId,
     joinedChannelIds: channels.map((channel) => channel._id),
   });
+};
+
+export const sendNotification = (userId, notification) => {
+  if (!ioInstance || !userId) {
+    return;
+  }
+  ioInstance.to(getUserRoom(userId)).emit("notification:new", notification);
 };

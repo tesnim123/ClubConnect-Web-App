@@ -19,7 +19,8 @@ export const getChannelMessages = asyncHandler(async (req, res) => {
 
   const items = await Message.find({ channel: channel._id })
     .sort({ createdAt: 1 })
-    .populate("sender", "name email role");
+    .populate("sender", "name email role")
+    .populate("replyTo", "content sender attachment");
 
   res.status(200).json({ items });
 });

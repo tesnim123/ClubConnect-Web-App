@@ -13,6 +13,9 @@ import {
 } from "../../components/ui/select";
 import { Download, TrendingUp, Users, Calendar, Building2 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import Papa from "papaparse";
 
 export default function Statistics() {
   const totalMembers = clubs.reduce((sum, club) => sum + club.memberCount, 0);
@@ -27,6 +30,43 @@ export default function Statistics() {
     { month: 'Fév', total: 162 },
     { month: 'Mars', total: totalMembers },
   ];
+
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    doc.text("Rapport d'activité des clubs", 14, 15);
+    
+    const tableData = clubs.map(club => [
+      club.name,
+      club.memberCount.toString(),
+      events.filter(e => e.clubId === club.id).length.toString()
+    ]);
+
+    autoTable(doc, {
+      head: [["Club", "Membres", "Événements"]],
+      body: tableData,
+      startY: 20,
+    });
+
+    doc.save("rapport-clubs.pdf");
+  };
+
+  const exportCSV = () => {
+    const csvData = clubs.map(club => ({
+      Club: club.name,
+      Membres: club.memberCount,
+      Evenements: events.filter(e => e.clubId === club.id).length
+    }));
+    
+    const csv = Papa.unparse(csvData);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "rapport-clubs.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="flex h-screen">
@@ -59,11 +99,11 @@ export default function Statistics() {
                   <SelectItem value="custom">Personnalisé</SelectItem>
                 </SelectContent>
               </Select>
-              <Button className="bg-[#0EA8A8] hover:bg-[#0c8e8e]">
+              <Button className="bg-[#0EA8A8] hover:bg-[#0c8e8e]" onClick={exportPDF}>
                 <Download className="w-4 h-4 mr-2" />
                 Télécharger PDF
               </Button>
-              <Button variant="outline">
+              <Button variant="outline" onClick={exportCSV}>
                 <Download className="w-4 h-4 mr-2" />
                 Télécharger CSV
               </Button>

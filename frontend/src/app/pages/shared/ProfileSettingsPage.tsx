@@ -9,8 +9,13 @@ import { useAuth } from "../../context/AuthContext";
 import { getRoleSection } from "../../lib/role";
 
 export default function ProfileSettingsPage() {
-  const { user, changePassword } = useAuth();
+  const { user, changePassword, updateProfile } = useAuth();
   const section = getRoleSection(user?.role);
+  
+  const [name, setName] = useState(user?.name || "");
+  const [phone, setPhone] = useState(user?.phone || "");
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,6 +38,18 @@ export default function ProfileSettingsPage() {
     }
   };
 
+  const handleUpdateProfile = async () => {
+    setIsUpdatingProfile(true);
+    try {
+      await updateProfile({ name, phone });
+      toast.success("Profil mis a jour.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Mise a jour impossible");
+    } finally {
+      setIsUpdatingProfile(false);
+    }
+  };
+
   return (
     <AppShell
       title="Profil et securite"
@@ -44,8 +61,19 @@ export default function ProfileSettingsPage() {
           <h2 className="text-xl font-bold text-[#10233F]">Profil</h2>
           <div className="mt-5 space-y-4">
             <div>
-              <p className="text-sm text-gray-500">Nom</p>
-              <p className="font-semibold text-[#10233F]">{user?.name}</p>
+              <p className="text-sm text-gray-500 mb-1">Nom</p>
+              <Input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+              />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Téléphone</p>
+              <Input
+                value={phone}
+                placeholder="+216 22 123 456"
+                onChange={(event) => setPhone(event.target.value)}
+              />
             </div>
             <div>
               <p className="text-sm text-gray-500">Email</p>
@@ -59,6 +87,9 @@ export default function ProfileSettingsPage() {
               <p className="text-sm text-gray-500">Statut</p>
               <p className="font-semibold text-[#10233F]">{user?.status}</p>
             </div>
+            <Button onClick={handleUpdateProfile} disabled={isUpdatingProfile} className="bg-[#0EA8A8] hover:bg-[#0c8e8e]">
+              {isUpdatingProfile ? "Enregistrement..." : "Enregistrer"}
+            </Button>
           </div>
         </Card>
 

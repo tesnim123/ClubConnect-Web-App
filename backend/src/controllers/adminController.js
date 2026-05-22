@@ -7,6 +7,7 @@ import { User } from "../models/User.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { addStaffMemberToClub, createClubWithPresident } from "../services/clubService.js";
+import { sendNotification } from "../services/socketService.js";
 
 const populateClubQuery = (query) =>
   query
@@ -139,6 +140,12 @@ export const publishPost = asyncHandler(async (req, res) => {
   post.publishedAt = new Date();
   await post.save();
 
+  sendNotification(post.author, {
+    title: "Publication validée",
+    message: `Votre publication "${post.title}" a été validée.`,
+    type: "post",
+  });
+
   res.status(200).json({
     message: "Publication validee.",
     post,
@@ -154,6 +161,12 @@ export const rejectPost = asyncHandler(async (req, res) => {
   post.status = POST_STATUSES.REJECTED;
   post.validatedBy = req.user._id;
   await post.save();
+
+  sendNotification(post.author, {
+    title: "Publication rejetée",
+    message: `Votre publication "${post.title}" a été rejetée.`,
+    type: "post",
+  });
 
   res.status(200).json({
     message: "Publication rejetee.",

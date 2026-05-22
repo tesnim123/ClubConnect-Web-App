@@ -61,6 +61,17 @@ export type ChannelMessage = {
     role: UserRole;
   };
   content: string;
+  attachment?: string | null;
+  attachmentName?: string | null;
+  attachmentType?: string | null;
+  replyTo?: {
+    _id: string;
+    content: string;
+    attachment?: string;
+    sender: { name: string };
+  } | null;
+  isDeleted?: boolean;
+  reactions?: { emoji: string; users: string[] }[];
   createdAt: string;
 };
 
@@ -74,6 +85,8 @@ export type ClubPost = {
   type: ClubPostType;
   status: ClubPostStatus;
   publishedAt?: string | null;
+  attachment?: string | null;
+  attachmentName?: string | null;
   createdAt: string;
   club: { _id: string; name: string };
   author: {
@@ -88,4 +101,34 @@ export type ClubPost = {
     email?: string;
     role: UserRole;
   } | null;
+  likes?: string[];
+  comments?: {
+    _id: string;
+    author: {
+      _id: string;
+      name: string;
+      role: UserRole;
+    };
+    text: string;
+    createdAt: string;
+  }[];
+};
+
+export type ClubEvent = {
+  _id: string;
+  title: string;
+  description: string;
+  club: { _id: string; name: string };
+  clubs: Array<{ _id: string; name: string }>;
+  date: string;
+  startTime: string;
+  endTime: string;
+  room: string;
+  equipments: string[];
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  rejectionReason?: string;
+  createdBy: { _id: string; name: string; email: string };
+  validatedBy?: { _id: string; name: string } | null;
+  createdAt: string;
+  updatedAt: string;
 };
