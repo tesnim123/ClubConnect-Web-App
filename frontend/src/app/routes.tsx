@@ -16,6 +16,7 @@ import ForumPage from "./pages/shared/ForumPage";
 import PublicEventsPage from "./pages/shared/PublicEventsPage";
 import AdminModerationPage from "./pages/shared/AdminModerationPage";
 import ProfileSettingsPage from "./pages/shared/ProfileSettingsPage";
+import GlobalForumPage from "./pages/shared/GlobalForumPage";
 
 export const router = createBrowserRouter([
   {
@@ -34,6 +35,7 @@ export const router = createBrowserRouter([
             children: [
               { path: "member/dashboard", Component: RoleDashboard },
               { path: "member/events", Component: PublicEventsPage },
+              { path: "member/global-forum", Component: GlobalForumPage },
               { path: "member/chat", Component: ChannelsPage },
               { path: "member/forum", Component: ForumPage },
               { path: "member/profile", Component: ProfileSettingsPage },
@@ -46,6 +48,7 @@ export const router = createBrowserRouter([
               { path: "staff/dashboard", Component: RoleDashboard },
               { path: "staff/event/new", Component: ForumPage },
               { path: "staff/events", Component: PublicEventsPage },
+              { path: "staff/global-forum", Component: GlobalForumPage },
               { path: "staff/channels", Component: ChannelsPage },
               { path: "staff/forum", Component: ForumPage },
               { path: "staff/profile", Component: ProfileSettingsPage },
@@ -53,12 +56,15 @@ export const router = createBrowserRouter([
             ],
           },
           {
-            Component: () => <ProtectedRoute allowedRoles={["PRESIDENT", "VICE_PRESIDENT"]} />,
+            Component: () => (
+              <ProtectedRoute allowedRoles={["PRESIDENT", "VICE_PRESIDENT"]} />
+            ),
             children: [
               { path: "president/dashboard", Component: RoleDashboard },
               { path: "president/members", Component: PresidentMembersPage },
               { path: "president/event/new", Component: ForumPage },
               { path: "president/events", Component: PublicEventsPage },
+              { path: "president/global-forum", Component: GlobalForumPage },
               { path: "president/channels", Component: ChannelsPage },
               { path: "president/forum", Component: ForumPage },
               { path: "president/profile", Component: ProfileSettingsPage },
@@ -74,12 +80,16 @@ export const router = createBrowserRouter([
               { path: "admin/clubs/:id", Component: AdminClubDetails },
               { path: "admin/members", Component: RoleDashboard },
               { path: "admin/events", Component: AdminModerationPage },
+              { path: "admin/global-forum", Component: GlobalForumPage },
               { path: "admin/communication", Component: ChannelsPage },
               { path: "admin/forums", Component: AdminModerationPage },
               { path: "admin/statistics", Component: RoleDashboard },
               { path: "admin/profile/:id", Component: ProfileSettingsPage },
               { path: "admin/settings/:id", Component: ProfileSettingsPage },
-              { path: "admin/notifications/:id", Component: ProfileSettingsPage },
+              {
+                path: "admin/notifications/:id",
+                Component: ProfileSettingsPage,
+              },
             ],
           },
           { path: ":role/settings/:id", Component: ProfileSettingsPage },

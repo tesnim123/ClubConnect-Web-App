@@ -102,6 +102,7 @@ export type ClubPost = {
     role: UserRole;
   } | null;
   likes?: string[];
+  reactions?: { emoji: string; users: string[] }[];
   comments?: {
     _id: string;
     author: {

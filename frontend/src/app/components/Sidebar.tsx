@@ -17,6 +17,7 @@ import {
   Hash,
   Menu,
   LogOut,
+  Globe,
 } from "lucide-react";
 import { cn } from "../components/ui/utils";
 import { useState } from "react";
@@ -41,22 +42,32 @@ export function Sidebar({ role }: SidebarProps) {
   const memberLinks = [
     { to: "/member/dashboard", icon: Home, label: "Accueil" },
     { to: "/member/events", icon: Calendar, label: "Événements" },
+    { to: "/member/global-forum", icon: Globe, label: "Forum Global" },
     { to: "/member/chat", icon: MessageSquare, label: "Chat" },
-    { to: "/member/forum", icon: Users, label: "Forum" },
+    { to: "/member/forum", icon: Users, label: "Forum Club" },
     { to: `/member/profile/${userId}`, icon: User, label: "Profil" },
     { to: `/member/settings/${userId}`, icon: Settings, label: "Paramètres" },
-    { to: `/member/notifications/${userId}`, icon: Bell, label: "Notifications" },
+    {
+      to: `/member/notifications/${userId}`,
+      icon: Bell,
+      label: "Notifications",
+    },
   ];
 
   const staffLinks = [
     { to: "/staff/dashboard", icon: Home, label: "Tableau de bord" },
     { to: "/staff/events", icon: Calendar, label: "Événements" },
     { to: "/staff/event/new", icon: PlusCircle, label: "Créer événement" },
+    { to: "/staff/global-forum", icon: Globe, label: "Forum Global" },
     { to: "/staff/channels", icon: Hash, label: "Canaux" },
-    { to: "/staff/forum", icon: MessagesSquare, label: "Forum" },
+    { to: "/staff/forum", icon: MessagesSquare, label: "Forum Club" },
     { to: `/staff/profile/${userId}`, icon: User, label: "Profil" },
     { to: `/staff/settings/${userId}`, icon: Settings, label: "Paramètres" },
-    { to: `/staff/notifications/${userId}`, icon: Bell, label: "Notifications" },
+    {
+      to: `/staff/notifications/${userId}`,
+      icon: Bell,
+      label: "Notifications",
+    },
   ];
 
   const presidentLinks = [
@@ -64,11 +75,20 @@ export function Sidebar({ role }: SidebarProps) {
     { to: "/president/events", icon: Calendar, label: "Événements" },
     { to: "/president/event/new", icon: PlusCircle, label: "Créer événement" },
     { to: "/president/members", icon: UserPlus, label: "Membres" },
+    { to: "/president/global-forum", icon: Globe, label: "Forum Global" },
     { to: "/president/channels", icon: Hash, label: "Canaux" },
-    { to: "/president/forum", icon: MessagesSquare, label: "Forum" },
+    { to: "/president/forum", icon: MessagesSquare, label: "Forum Club" },
     { to: `/president/profile/${userId}`, icon: User, label: "Profil" },
-    { to: `/president/settings/${userId}`, icon: Settings, label: "Paramètres" },
-    { to: `/president/notifications/${userId}`, icon: Bell, label: "Notifications" },
+    {
+      to: `/president/settings/${userId}`,
+      icon: Settings,
+      label: "Paramètres",
+    },
+    {
+      to: `/president/notifications/${userId}`,
+      icon: Bell,
+      label: "Notifications",
+    },
   ];
 
   const adminLinks = [
@@ -76,22 +96,34 @@ export function Sidebar({ role }: SidebarProps) {
     { to: "/admin/clubs", icon: Building2, label: "Clubs" },
     { to: "/admin/events", icon: Calendar, label: "Événements" },
     { to: "/admin/members", icon: Users, label: "Membres" },
-    { to: "/admin/forums", icon: MessagesSquare, label: "Forums" },
+    { to: "/admin/global-forum", icon: Globe, label: "Forum Global" },
+    { to: "/admin/forums", icon: MessagesSquare, label: "Forums Clubs" },
     { to: "/admin/statistics", icon: BarChart3, label: "Statistiques" },
     { to: "/admin/communication", icon: MessageSquare, label: "Communication" },
     { to: `/admin/profile/${userId}`, icon: User, label: "Profil" },
     { to: `/admin/settings/${userId}`, icon: Settings, label: "Paramètres" },
-    { to: `/admin/notifications/${userId}`, icon: Bell, label: "Notifications" },
+    {
+      to: `/admin/notifications/${userId}`,
+      icon: Bell,
+      label: "Notifications",
+    },
   ];
 
   const links =
-    role === "admin" ? adminLinks
-      : role === "president" ? presidentLinks
-      : role === "staff" ? staffLinks
-      : memberLinks;
+    role === "admin"
+      ? adminLinks
+      : role === "president"
+        ? presidentLinks
+        : role === "staff"
+          ? staffLinks
+          : memberLinks;
 
   const isActive = (to: string) => {
-    if (to.includes("/profile/") || to.includes("/settings/") || to.includes("/notifications/")) {
+    if (
+      to.includes("/profile/") ||
+      to.includes("/settings/") ||
+      to.includes("/notifications/")
+    ) {
       return location.pathname.startsWith(to.split("/").slice(0, -1).join("/"));
     }
     return location.pathname === to;
@@ -102,36 +134,37 @@ export function Sidebar({ role }: SidebarProps) {
       className={cn(
         "bg-[#1B2A4A] text-white flex flex-col relative flex-shrink-0",
         "transition-[width] duration-300 ease-in-out",
-        collapsed ? "w-16" : "w-60"
+        collapsed ? "w-16" : "w-60",
       )}
     >
       {/* Header: hamburger + logo (when expanded) */}
       <div className=" flex items-center min-h-[64px] overflow-hidden min-h-[64px] px-3 gap-3 pb-3 pt-2 ">
         <button
-  onClick={() => setCollapsed(!collapsed)}
-  className="w-8 h-8 rounded-md flex items-center ml-1 justify-center flex-shrink-0 text-gray-300 hover:text-white hover:bg-[#2D3E5F] transition-colors duration-200"
-  title={collapsed ? "Ouvrir le menu" : "Réduire le menu"}
->
-  <Menu className="w-5 h-5" />
-</button>
+          onClick={() => setCollapsed(!collapsed)}
+          className="w-8 h-8 rounded-md flex items-center ml-1 justify-center flex-shrink-0 text-gray-300 hover:text-white hover:bg-[#2D3E5F] transition-colors duration-200"
+          title={collapsed ? "Ouvrir le menu" : "Réduire le menu"}
+        >
+          <Menu className="w-5 h-5" />
+        </button>
 
         {/* Logo icon + name — fades in when expanded */}
         <div
           className={cn(
             "flex items-center gap-2 overflow-hidden transition-all duration-300 ease-in-out",
-            collapsed ? "max-w-0 opacity-0" : "max-w-[160px] opacity-100"
+            collapsed ? "max-w-0 opacity-0" : "max-w-[160px] opacity-100",
           )}
         >
-          <Link
-            to="/"
-            className="flex items-center gap-2"
-          >
+          <Link to="/" className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-[#0EA8A8] flex items-center justify-center flex-shrink-0">
               <span className="text-white font-bold text-sm">C</span>
             </div>
             <div>
-              <h2 className="font-bold text-sm leading-tight whitespace-nowrap">ClubConnect</h2>
-              <p className="text-xs text-gray-400 whitespace-nowrap">Connectez. Créez.</p>
+              <h2 className="font-bold text-sm leading-tight whitespace-nowrap">
+                ClubConnect
+              </h2>
+              <p className="text-xs text-gray-400 whitespace-nowrap">
+                Connectez. Créez.
+              </p>
             </div>
           </Link>
         </div>
@@ -148,7 +181,9 @@ export function Sidebar({ role }: SidebarProps) {
                 to={link.to}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors duration-150",
-                  active ? "bg-[#0EA8A8] text-white" : "text-gray-300 hover:bg-[#2D3E5F] hover:text-white"
+                  active
+                    ? "bg-[#0EA8A8] text-white"
+                    : "text-gray-300 hover:bg-[#2D3E5F] hover:text-white",
                 )}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
@@ -156,7 +191,9 @@ export function Sidebar({ role }: SidebarProps) {
                 <span
                   className={cn(
                     "text-sm whitespace-nowrap transition-all duration-300 ease-in-out overflow-hidden",
-                    collapsed ? "max-w-0 opacity-0" : "max-w-[160px] opacity-100"
+                    collapsed
+                      ? "max-w-0 opacity-0"
+                      : "max-w-[160px] opacity-100",
                   )}
                 >
                   {link.label}
@@ -182,14 +219,14 @@ export function Sidebar({ role }: SidebarProps) {
             onClick={handleLogout}
             className={cn(
               "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors duration-150",
-              "text-red-400 hover:bg-red-500/10 hover:text-red-300"
+              "text-red-400 hover:bg-red-500/10 hover:text-red-300",
             )}
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             <span
               className={cn(
                 "text-sm whitespace-nowrap font-medium transition-all duration-300 ease-in-out overflow-hidden",
-                collapsed ? "max-w-0 opacity-0" : "max-w-[160px] opacity-100"
+                collapsed ? "max-w-0 opacity-0" : "max-w-[160px] opacity-100",
               )}
             >
               Déconnexion

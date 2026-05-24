@@ -24,7 +24,6 @@ export const createPost = asyncHandler(async (req, res) => {
     throw new ApiError(403, "Vous ne pouvez publier que dans le forum de votre club.");
   }
 
-  const autoPublish = canAutoPublish(req.user);
   const post = await Post.create({
     title,
     content,
@@ -33,9 +32,9 @@ export const createPost = asyncHandler(async (req, res) => {
     author: req.user._id,
     attachment: attachment || null,
     attachmentName: attachmentName || null,
-    status: autoPublish ? POST_STATUSES.PUBLISHED : POST_STATUSES.PENDING,
-    publishedAt: autoPublish ? new Date() : null,
-    validatedBy: autoPublish ? req.user._id : null,
+    status: POST_STATUSES.PUBLISHED,
+    publishedAt: new Date(),
+    validatedBy: null,
   });
 
   const populatedPost = await Post.findById(post._id)
@@ -44,7 +43,7 @@ export const createPost = asyncHandler(async (req, res) => {
     .populate("validatedBy", "name email role");
 
   res.status(201).json({
-    message: autoPublish ? "Publication publiee." : "Publication en attente de validation.",
+    message: "Publication publiée.",
     post: populatedPost,
   });
 });
@@ -57,6 +56,16 @@ export const getPublicEventPosts = asyncHandler(async (_req, res) => {
     .sort({ publishedAt: -1, createdAt: -1 })
     .populate("club", "name")
     .populate("author", "name role");
+
+  res.status(200).json({ items });
+});
+
+export const getGlobalForumPosts = asyncHandler(async (req, res) => {
+  const items = await Post.find({ status: POST_STATUSES.PUBLISHED })
+    .sort({ publishedAt: -1, createdAt: -1 })
+    .populate("club", "name")
+    .populate("author", "name role")
+    .populate("comments.author", "name role");
 
   res.status(200).json({ items });
 });
@@ -188,5 +197,27 @@ export const reactToPost = asyncHandler(async (req, res) => {
   res.status(200).json({
     message: "Reaction mise a jour",
     reactions: post.reactions,
+  });
+});
+
+export const deletePost = asyncHandler(async (req, res) => {
+  const post = await Post.findById(req.params.postId);
+
+  if (!post) {
+    throw new ApiError(404, "Publication introuvable.");
+  }
+
+  const isAuthor = String(post.author) === String(req.user._id);
+  const isPresidentOfClub = ["PRESIDENT", "VICE_PRESIDENT"].includes(req.user.role) && String(req.user.club?._id || req.user.club) === String(post.club);
+  const isAdmin = req.user.role === ROLES.ADMIN;
+
+  if (!isAuthor && !isPresidentOfClub && !isAdmin) {
+    throw new ApiError(403, "Seul l'auteur ou un modérateur peut supprimer cette publication.");
+  }
+
+  await Post.findByIdAndDelete(post._id);
+
+  res.status(200).json({
+    message: "Publication supprimée avec succès.",
   });
 });

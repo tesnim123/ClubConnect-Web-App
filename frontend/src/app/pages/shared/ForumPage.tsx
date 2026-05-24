@@ -23,7 +23,13 @@ import { apiRequest, ApiClientError } from "../../lib/api";
 import { getRoleSection } from "../../lib/role";
 import type { ClubPost, ClubPostType } from "../../types/club";
 
-function PostCard({ post }: { post: ClubPost }) {
+function PostCard({
+  post,
+  onPostDeleted,
+}: {
+  post: ClubPost;
+  onPostDeleted: (postId: string) => void;
+}) {
   const { user, token } = useAuth();
 
   const initialLiked = post.likes?.includes(user?._id || "") || false;
@@ -38,16 +44,45 @@ function PostCard({ post }: { post: ClubPost }) {
   const [isCommenting, setIsCommenting] = useState(false);
   const [reactions, setReactions] = useState(post.reactions || []);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const canDelete =
+    user?._id === post.author._id ||
+    user?.role === "ADMIN" ||
+    (["PRESIDENT", "VICE_PRESIDENT"].includes(user?.role || "") &&
+      user?.club === post.club._id);
+
+  const handleDelete = async () => {
+    if (!token || !canDelete) return;
+    if (!window.confirm("Voulez-vous vraiment supprimer cette publication ?"))
+      return;
+
+    setIsDeleting(true);
+    try {
+      await apiRequest(`/posts/${post._id}`, {
+        method: "DELETE",
+        token,
+      });
+      toast.success("Publication supprimée.");
+      onPostDeleted(post._id);
+    } catch (error) {
+      toast.error("Impossible de supprimer la publication.");
+      setIsDeleting(false);
+    }
+  };
 
   const handleReact = async (emojiObj: any) => {
     setShowEmojiPicker(false);
     if (!token) return;
     try {
-      const response = await apiRequest<{ message: string; reactions: any[] }>(`/posts/${post._id}/react`, {
-        method: "POST",
-        token,
-        body: JSON.stringify({ emoji: emojiObj.emoji }),
-      });
+      const response = await apiRequest<{ message: string; reactions: any[] }>(
+        `/posts/${post._id}/react`,
+        {
+          method: "POST",
+          token,
+          body: JSON.stringify({ emoji: emojiObj.emoji }),
+        },
+      );
       setReactions(response.reactions);
     } catch (error) {
       toast.error("Impossible d'ajouter la reaction");
@@ -129,17 +164,42 @@ function PostCard({ post }: { post: ClubPost }) {
           </div>
         </div>
 
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-semibold ${
-            post.status === "PUBLISHED"
-              ? "bg-emerald-100 text-emerald-700"
-              : post.status === "PENDING"
-                ? "bg-amber-100 text-amber-700"
-                : "bg-rose-100 text-rose-700"
-          }`}
-        >
-          {post.status}
-        </span>
+        <div className="flex items-center gap-2">
+          {canDelete && (
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="text-gray-400 hover:text-red-500 mr-2 transition-colors disabled:opacity-50"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+              </svg>
+            </button>
+          )}
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              post.status === "PUBLISHED"
+                ? "bg-emerald-100 text-emerald-700"
+                : post.status === "PENDING"
+                  ? "bg-amber-100 text-amber-700"
+                  : "bg-rose-100 text-rose-700"
+            }`}
+          >
+            {post.status}
+          </span>
+        </div>
       </div>
 
       <div className="mt-4">
@@ -172,18 +232,14 @@ function PostCard({ post }: { post: ClubPost }) {
         )}
       </div>
 
-      {post.validatedBy ? (
-        <div className="mt-4 flex items-center gap-2 text-xs text-gray-500">
-          <ShieldCheck className="h-4 w-4 text-[#0EA8A8]" />
-          Valide par {post.validatedBy.name}
-        </div>
-      ) : null}
-
       <div className="mt-5 border-t border-gray-100 pt-4 flex flex-col gap-2">
         {reactions.length > 0 && (
           <div className="flex gap-2 items-center flex-wrap">
             {reactions.map((r: any) => (
-              <span key={r.emoji} className="bg-gray-100 px-2 py-1 rounded-full text-xs">
+              <span
+                key={r.emoji}
+                className="bg-gray-100 px-2 py-1 rounded-full text-xs"
+              >
                 {r.emoji} {r.users.length}
               </span>
             ))}
@@ -279,7 +335,7 @@ function PostCard({ post }: { post: ClubPost }) {
   );
 }
 
-export default function ForumPage() {
+export default function ForumPage({ global = false }: { global?: boolean }) {
   const { user, token } = useAuth();
   const section = getRoleSection(user?.role);
   const [posts, setPosts] = useState<ClubPost[]>([]);
@@ -322,20 +378,26 @@ export default function ForumPage() {
   const clubId = typeof user?.club === "object" ? user.club?._id : user?.club;
 
   const loadPosts = async () => {
-    if (!clubId || !token) {
-      return;
-    }
+    if (!token) return;
 
-    const response = await apiRequest<{ items: ClubPost[] }>(
-      `/posts/club/${clubId}`,
-      { token },
-    );
-    setPosts(response.items);
+    if (global) {
+      const response = await apiRequest<{ items: ClubPost[] }>(
+        "/posts/global",
+        { token },
+      );
+      setPosts(response.items);
+    } else if (clubId) {
+      const response = await apiRequest<{ items: ClubPost[] }>(
+        `/posts/club/${clubId}`,
+        { token },
+      );
+      setPosts(response.items);
+    }
   };
 
   useEffect(() => {
     void loadPosts();
-  }, [clubId, token]);
+  }, [clubId, token, global]);
 
   const handleSubmit = async () => {
     if (!token || !clubId || !title.trim() || !content.trim()) {
@@ -519,7 +581,13 @@ export default function ForumPage() {
 
         <div className="space-y-6">
           {filteredActivePosts.map((post) => (
-            <PostCard key={post._id} post={post} />
+            <PostCard
+              key={post._id}
+              post={post}
+              onPostDeleted={(id) =>
+                setPosts((prev) => prev.filter((p) => p._id !== id))
+              }
+            />
           ))}
 
           {filteredActivePosts.length === 0 ? (
