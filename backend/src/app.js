@@ -16,20 +16,8 @@ dotenv.config();
 
 const app = express();
 
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  "http://localhost:5173",
-].filter(Boolean);
-
 const corsOptions = {
-  origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. mobile apps, curl, Postman)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error(`CORS: origin '${origin}' not allowed`));
-    }
-  },
+  origin: true, // Reflects the request origin — works with credentials
   credentials: true,
 };
 
