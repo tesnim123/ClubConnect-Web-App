@@ -16,6 +16,9 @@ COPY . .
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 
+# Création explicite du fichier .env pour Vite
+RUN echo "VITE_API_URL=${VITE_API_URL}" > .env.production
+
 # Build de l'application pour la production (Vite génère habituellement un dossier `dist`)
 RUN npm run build
 
