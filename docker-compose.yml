@@ -25,7 +25,7 @@ services:
     ports:
       - "8080:80" # Maps localhost:8080 to container port 80 (NGINX)
     environment:
-      - VITE_API_URL=http://localhost:5000
+      - VITE_API_URL=https://clubconnect-backend-production.up.railway.app
     depends_on:
       - backend
     restart: unless-stopped
