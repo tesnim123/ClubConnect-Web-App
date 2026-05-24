@@ -12,6 +12,10 @@ RUN npm ci
 # Copie du code source
 COPY . .
 
+# On déclare l'ARG pour que Railway puisse injecter la variable pendant le build
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+
 # Build de l'application pour la production (Vite génère habituellement un dossier `dist`)
 RUN npm run build
 
