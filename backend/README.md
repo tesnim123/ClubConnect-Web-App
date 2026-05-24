@@ -127,7 +127,7 @@ Regles appliquees :
 
 - `POST /api/auth/login`
 - `POST /api/auth/register`
-- `PUT /api/auth/change-password`
+- `PUT /api/autefh/change-password`
 
 ### Clubs publics
 
@@ -154,6 +154,7 @@ Regles appliquees :
 - `POST /api/president/channels`
 
 Notes :
+
 - `POST /api/president/staff` et `POST /api/president/channels` sont reserves au president.
 - La validation des membres est ouverte au president et au vice-president.
 
@@ -213,6 +214,7 @@ Evenement emis par le client :
 ```
 
 4. Le backend cree :
+
 - le club
 - le compte president
 - les 5 canaux systeme
@@ -226,8 +228,10 @@ Evenement emis par le client :
 10. Le president ou le vice-president valide via `PUT /api/president/accept-member/:id`.
 11. Le membre est ajoute automatiquement au canal general du club et peut acceder au forum.
 12. Un membre publie un post :
+
 - s'il est `MEMBER`, le post reste `PENDING`
 - s'il est bureau ou admin, le post est `PUBLISHED`
+
 13. Les evenements publies remontent publiquement via `GET /api/posts/public/events`.
 
 ## Notes d'integration frontend
