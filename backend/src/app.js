@@ -17,8 +17,15 @@ dotenv.config();
 const app = express();
 
 const corsOptions = {
-  origin: true, // Reflects the request origin — works with credentials
+  origin: [
+    process.env.FRONTEND_URL,
+    "http://localhost:5173",
+    "http://localhost:8080",
+    "https://clubconnect-frontend-production.up.railway.app"
+  ],
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 };
 
 // Handle preflight OPTIONS requests for ALL routes explicitly
